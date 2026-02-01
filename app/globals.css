@@ -1,0 +1,227 @@
+:root {
+  /* 经典金融终端配色 */
+  --bg: #f5f7fa;        /* 整体背景灰 */
+  --card: #ffffff;      /* 内容区白 */
+  --text: #333333;      /* 正文黑 */
+  --muted: #666666;     /* 次要文字灰 */
+  
+  --header-bg: #357ec7; /* 顶部导航蓝 */
+  --header-text: #fff;
+  
+  --border: #dcdcdc;    /* 边框灰 */
+  --hover: #fff8b0;     /* 鼠标悬停高亮（经典淡黄） */
+  
+  /* 红涨绿跌（中国市场习惯：红=涨/Up，绿=跌/Down） */
+  --danger: #d20000;    /* 鲜红 */
+  --success: #008000;   /* 深绿 */
+  
+  --accent: #2c78e5;    /* 强调色 */
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: "Microsoft YaHei", "Segoe UI", sans-serif; /* 使用微软雅黑更贴近中文金融软件 */
+  font-size: 13px; /* 字体改小，增加信息密度 */
+  background: var(--bg);
+  color: var(--text);
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 16px;
+}
+
+/* 顶部蓝色导航栏 */
+.navbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 40px; /* 变窄 */
+  background: var(--header-bg);
+  color: var(--header-text);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  z-index: 50;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: bold;
+  font-size: 14px;
+}
+
+.content {
+  padding-top: 56px; /* 为顶部导航留出空间 */
+}
+
+/* 移除 Glass 效果，改为实心白底带边框 */
+.glass {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 2px; /* 直角风格 */
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
+
+/* 输入框区域样式 */
+.add-fund-section {
+  padding: 12px;
+  margin-bottom: 12px;
+  background: #fff;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.form {
+  display: flex;
+  gap: 8px;
+}
+
+.input {
+  height: 30px;
+  padding: 0 8px;
+  border: 1px solid var(--border);
+  outline: none;
+  font-size: 12px;
+  width: 120px;
+}
+
+.input:focus {
+  border-color: var(--accent);
+}
+
+.button {
+  height: 30px;
+  padding: 0 12px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--text);
+}
+.button:hover {
+  background: #e6e6e6;
+  border-color: #aaa;
+}
+
+/* 表格布局样式 - 核心修改 */
+.fund-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #fff;
+}
+
+.fund-table th {
+  background: #f0f3f5; /* 表头浅灰 */
+  border: 1px solid var(--border);
+  padding: 6px 8px;
+  text-align: right; /* 数字靠右 */
+  font-weight: normal;
+  color: #333;
+}
+.fund-table th:first-child, 
+.fund-table td:first-child {
+  text-align: left; /* 名称靠左 */
+}
+
+.fund-table td {
+  border: 1px solid var(--border);
+  padding: 6px 8px;
+  text-align: right;
+  vertical-align: middle;
+}
+
+/* 经典的高亮行颜色 */
+.fund-table tbody tr:hover {
+  background-color: var(--hover); 
+}
+
+/* 涨跌幅颜色 */
+.up { color: var(--danger); }
+.down { color: var(--success); }
+
+/* 展开的详情区 */
+.holdings-row {
+  background: #fafafa;
+}
+.holdings-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 8px;
+  font-size: 12px;
+}
+.holding-item {
+  border: 1px solid #eee;
+  padding: 2px 6px;
+  background: #fff;
+  display: flex;
+  gap: 6px;
+}
+
+/* 顶部右侧的操作区 */
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.icon-button {
+  background: transparent;
+  border: none;
+  color: rgba(255,255,255,0.8);
+  cursor: pointer;
+  padding: 4px;
+}
+.icon-button:hover {
+  color: #fff;
+}
+
+/* Loading 条 */
+.loading-bar {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  height: 3px;
+  background: #fff; /* 蓝色背景上用白色条 */
+  width: 100%;
+  animation: loading 1.5s infinite;
+}
+
+@keyframes loading {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+/* 模态框修正 */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+.modal {
+  width: 400px;
+  background: #fff;
+  padding: 16px;
+  border: 1px solid #999;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
