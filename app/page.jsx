@@ -134,16 +134,13 @@ export default function HomePage() {
   };
 
   // --- 获取排行榜 ---
-  // type: 'up' | 'down'
-  // category: 'all'|'gp'|'hh'|'zs'|'zq'
   const fetchRankings = async (type = rankType, category = rankCategory) => {
     setRankLoading(true);
     setRankList([]);
     setRankType(type);
     setRankCategory(category);
-    setRankSearch(''); // 切换时清空搜索
+    setRankSearch('');
     
-    // Top 200，保证“全”
     const order = type === 'up' ? 'desc' : 'asc';
     const baseUrl = `https://fund.eastmoney.com/data/rankhandler.aspx?op=ph&dt=kf&ft=${category}&rs=&gs=0&sc=zzf&pi=1&pn=200&dx=1&st=${order}&v=${Math.random()}`;
     
@@ -161,7 +158,6 @@ export default function HomePage() {
           };
         });
 
-        // 强制二次排序
         if (type === 'up') {
           list.sort((a, b) => b.gszzl - a.gszzl);
         } else {
@@ -298,7 +294,6 @@ export default function HomePage() {
   const fmtMoney = (val) => isFinite(val) ? val.toFixed(2) : '—';
   const getColor = (val) => val > 0 ? 'var(--danger)' : val < 0 ? 'var(--success)' : 'inherit';
 
-  // 榜单过滤
   const filteredRankList = rankList.filter(item => {
     if (!rankSearch) return true;
     return item.name.includes(rankSearch) || item.code.includes(rankSearch);
@@ -352,27 +347,33 @@ export default function HomePage() {
       </div>
 
       {funds.length === 0 ? (
-        // <div style={{padding:40, textAlign:'center', color:'#999'}}>
-        //   暂无自选，请添加或查看 <span style={{color:'var(--accent)', cursor:'pointer', fontWeight:'bold'}} onClick={() => { setRankOpen(true); fetchRankings('up', 'all'); }}>热门排行</span>
-        // </div>
-      <div style={{padding:40, textAlign:'center', color:'#999'}}>
+        <div style={{padding:40, textAlign:'center', color:'#999'}}>
           暂无自选，请添加。
+          {/* 或查看 <span style={{color:'var(--accent)', cursor:'pointer', fontWeight:'bold'}} onClick={() => { setRankOpen(true); fetchRankings('up', 'all'); }}>热门排行</span> */}
         </div>
       ) : (
         <div className="glass" style={{overflowX:'auto'}}>
           <table className="fund-table">
             <thead>
               <tr>
-                <th style={{width:'20%'}}>基金名称/代码</th>
-                <th style={{width:'10%'}}>实时估值</th>
-                <th 
-                  style={{width:'10%', cursor:'pointer', background: sortConfig.key === 'gszzl' ? '#e2e8f0' : ''}}
-                  onClick={() => handleSort('gszzl')}
-                >
-                  涨跌 {sortConfig.key === 'gszzl' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                {/* 优化后的第一列：名称/代码/涨跌 */}
+                <th style={{width:'30%'}}>
+                  <div>基金概况</div>
+                  <div style={{fontSize:11, fontWeight:'normal', color:'#666', marginTop:2, display:'flex', gap:10}}>
+                     <span>代码</span>
+                     <span 
+                        onClick={() => handleSort('gszzl')} 
+                        style={{cursor:'pointer', textDecoration: sortConfig.key === 'gszzl' ? 'underline' : 'none', color: sortConfig.key === 'gszzl' ? 'var(--accent)' : 'inherit'}}
+                     >
+                        涨跌 {sortConfig.key === 'gszzl' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                     </span>
+                  </div>
                 </th>
+                <th style={{width:'15%'}}>实时估值</th>
+                {/* 移除独立的涨跌幅列 */}
+                
                 <th 
-                  style={{width:'12%', cursor:'pointer', background: sortConfig.key === 'holdAmount' ? '#e2e8f0' : ''}}
+                  style={{width:'15%', cursor:'pointer', background: sortConfig.key === 'holdAmount' ? '#e2e8f0' : ''}}
                   onClick={() => handleSort('holdAmount')}
                 >
                   持有金额
@@ -390,7 +391,7 @@ export default function HomePage() {
                   总收益
                 </th>
                 <th style={{width:'10%'}}>更新时间</th>
-                <th style={{width:'14%'}}>操作</th>
+                <th style={{width:'6%'}}>操作</th>
               </tr>
             </thead>
             <tbody>
@@ -407,16 +408,34 @@ export default function HomePage() {
                 
                 return (
                   <tr key={f.code}>
+                    {/* 组合列：名称在上，代码+涨跌在下 */}
                     <td>
-                      <div style={{fontWeight:'bold'}}>{f.name}</div>
-                      <div style={{color:'var(--muted)', fontSize:11}}>{f.code}</div>
+                      {/* 1. 基金名称：单行截断，防止表格过高 */}
+                      <div style={{
+                        fontWeight:'bold', 
+                        marginBottom: 4,
+                        maxWidth: '160px', 
+                        whiteSpace: 'nowrap', 
+                        overflow: 'hidden', 
+                        textOverflow: 'ellipsis'
+                      }} title={f.name}>
+                        {f.name}
+                      </div>
+                      {/* 2. 代码 + 涨跌幅 */}
+                      <div style={{fontSize:12, display:'flex', alignItems:'center', gap:8}}>
+                         <span style={{color:'var(--muted)'}}>{f.code}</span>
+                         <span style={{fontWeight:'bold', color: getColor(delta)}}>
+                            {delta > 0 ? '+' : ''}{f.gszzl}%
+                         </span>
+                      </div>
                     </td>
+
                     <td style={{fontSize:15, fontWeight:'bold', color: getColor(delta)}}>
                       {f.gsz}
                     </td>
-                    <td style={{fontWeight:'bold', color: getColor(delta)}}>
-                      {delta > 0 ? '+' : ''}{f.gszzl}%
-                    </td>
+                    
+                    {/* 已移除独立涨跌幅列 */}
+                    
                     <td style={{fontWeight:'bold'}}>{share > 0 ? fmtMoney(holdAmount) : '-'}</td>
                     <td style={{fontWeight:'bold', color: getColor(dayIncome)}}>
                       {share > 0 ? (dayIncome > 0 ? '+' : '') + fmtMoney(dayIncome) : '-'}
@@ -463,7 +482,6 @@ export default function HomePage() {
               <button className="icon-button" onClick={() => setRankOpen(false)}>×</button>
             </div>
             
-            {/* 分类标签 */}
             <div style={{display:'flex', gap:8, marginBottom:12, overflowX:'auto', paddingBottom:4}}>
               {[
                 {k:'all', n:'全部'}, 
@@ -488,7 +506,6 @@ export default function HomePage() {
               ))}
             </div>
 
-            {/* 涨跌切换 + 搜索 */}
             <div style={{display:'flex', gap:10, marginBottom:12}}>
               <div style={{display:'flex', gap:0, borderRadius:8, border:'1px solid var(--border)', overflow:'hidden'}}>
                 <button 
@@ -557,7 +574,14 @@ export default function HomePage() {
                             </span>
                           </td>
                           <td>
-                            <div style={{fontWeight:'bold'}}>{item.name}</div>
+                            {/* 排行榜名称也做截断优化 */}
+                            <div style={{
+                              fontWeight:'bold',
+                              maxWidth: '180px', 
+                              whiteSpace: 'nowrap', 
+                              overflow: 'hidden', 
+                              textOverflow: 'ellipsis'
+                            }} title={item.name}>{item.name}</div>
                             <div style={{color:'#999', fontSize:10}}>{item.code}</div>
                           </td>
                           <td style={{color: rankType==='up'?'var(--danger)':'var(--success)', fontWeight:'bold'}}>
