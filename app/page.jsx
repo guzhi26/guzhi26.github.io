@@ -24,6 +24,9 @@ function EditIcon(props) {
 function SearchIcon(props) {
   return <svg {...props} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><path d="M21 21l-4.35-4.35" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>;
 }
+function ClockIcon(props) {
+  return <svg {...props} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2"/><polyline points="12 6 12 12 16 14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>;
+}
 
 export default function HomePage() {
   const [funds, setFunds] = useState([]);
@@ -32,27 +35,23 @@ export default function HomePage() {
   const [error, setError] = useState('');
   const timerRef = useRef(null);
   
-  // 状态管理
   const [refreshMs, setRefreshMs] = useState(30000);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [tempSeconds, setTempSeconds] = useState(30);
   const [refreshing, setRefreshing] = useState(false);
 
-  // 排序
   const [sortConfig, setSortConfig] = useState({ key: null, direction: 'desc' });
 
-  // 持仓编辑弹窗
   const [editingFund, setEditingFund] = useState(null);
   const [editShare, setEditShare] = useState('');
   const [editCost, setEditCost] = useState('');
 
-  // 排行榜状态
   const [rankOpen, setRankOpen] = useState(false);
-  const [rankType, setRankType] = useState('up'); // 'up' | 'down'
-  const [rankCategory, setRankCategory] = useState('all'); // all, gp, hh, zs, zq
+  const [rankType, setRankType] = useState('up');
+  const [rankCategory, setRankCategory] = useState('all');
   const [rankList, setRankList] = useState([]);
   const [rankLoading, setRankLoading] = useState(false);
-  const [rankSearch, setRankSearch] = useState(''); // 榜单内搜索
+  const [rankSearch, setRankSearch] = useState('');
 
   useEffect(() => {
     try {
@@ -79,7 +78,6 @@ export default function HomePage() {
     };
   }, [funds, refreshMs]);
 
-  // --- JSONP ---
   const loadScript = (url) => {
     return new Promise((resolve, reject) => {
       const script = document.createElement('script');
@@ -99,7 +97,6 @@ export default function HomePage() {
     });
   };
 
-  // --- 获取单个基金估值 ---
   const fetchFundData = async (c) => {
     return new Promise((resolve, reject) => {
       const gzUrl = `https://fundgz.1234567.com.cn/js/${c}.js?rt=${Date.now()}`;
@@ -133,7 +130,6 @@ export default function HomePage() {
     });
   };
 
-  // --- 获取排行榜 ---
   const fetchRankings = async (type = rankType, category = rankCategory) => {
     setRankLoading(true);
     setRankList([]);
@@ -299,6 +295,8 @@ export default function HomePage() {
     return item.name.includes(rankSearch) || item.code.includes(rankSearch);
   });
 
+  const lastUpdateTime = funds.length > 0 ? funds[0].gztime : '--';
+
   return (
     <div className="container content">
       <div className="navbar">
@@ -348,16 +346,37 @@ export default function HomePage() {
 
       {funds.length === 0 ? (
         <div style={{padding:40, textAlign:'center', color:'#999'}}>
-          暂无自选，请添加。
-          {/* 或查看 <span style={{color:'var(--accent)', cursor:'pointer', fontWeight:'bold'}} onClick={() => { setRankOpen(true); fetchRankings('up', 'all'); }}>热门排行</span> */}
+          暂无自选，请添加或查看 <span style={{color:'var(--accent)', cursor:'pointer', fontWeight:'bold'}} onClick={() => { setRankOpen(true); fetchRankings('up', 'all'); }}>热门排行</span>
         </div>
       ) : (
         <div className="glass" style={{overflowX:'auto'}}>
+          <div style={{
+            padding: '8px 12px', 
+            borderBottom: '1px solid #eee', 
+            background: '#fafafa',
+            display: 'flex', 
+            justifyContent: 'flex-end',
+            alignItems: 'center',
+            fontSize: 11,
+            color: '#888'
+          }}>
+             <div style={{display:'flex', alignItems:'center', gap:4}}>
+               <ClockIcon width="12" height="12" />
+               <span>数据时间: {lastUpdateTime}</span>
+             </div>
+          </div>
+
           <table className="fund-table">
             <thead>
               <tr>
-                {/* 优化后的第一列：名称/代码/涨跌 */}
-                <th style={{width:'30%'}}>
+                {/* 重新分配后的宽度：
+                   - 概况: 35% (增加，让名字更从容)
+                   - 估值: 20% (增加)
+                   - 持有金额: 20% (增加)
+                   - 今日收益: 15% (保持)
+                   - 操作: 10% (增加)
+                */}
+                <th style={{width:'35%'}}>
                   <div>基金概况</div>
                   <div style={{fontSize:11, fontWeight:'normal', color:'#666', marginTop:2, display:'flex', gap:10}}>
                      <span>代码</span>
@@ -369,59 +388,47 @@ export default function HomePage() {
                      </span>
                   </div>
                 </th>
-                <th style={{width:'15%'}}>实时估值</th>
-                {/* 移除独立的涨跌幅列 */}
+                <th style={{width:'20%'}}>实时估值</th>
                 
                 <th 
-                  style={{width:'15%', cursor:'pointer', background: sortConfig.key === 'holdAmount' ? '#e2e8f0' : ''}}
+                  style={{width:'20%', cursor:'pointer', background: sortConfig.key === 'holdAmount' ? '#e2e8f0' : ''}}
                   onClick={() => handleSort('holdAmount')}
                 >
                   持有金额
                 </th>
                 <th 
-                  style={{width:'12%', cursor:'pointer', background: sortConfig.key === 'dayIncome' ? '#e2e8f0' : ''}}
+                  style={{width:'15%', cursor:'pointer', background: sortConfig.key === 'dayIncome' ? '#e2e8f0' : ''}}
                   onClick={() => handleSort('dayIncome')}
                 >
                   今日收益
                 </th>
-                <th 
-                  style={{width:'12%', cursor:'pointer', background: sortConfig.key === 'totalIncome' ? '#e2e8f0' : ''}}
-                  onClick={() => handleSort('totalIncome')}
-                >
-                  总收益
-                </th>
-                <th style={{width:'10%'}}>更新时间</th>
-                <th style={{width:'6%'}}>操作</th>
+                
+                <th style={{width:'10%'}}>操作</th>
               </tr>
             </thead>
             <tbody>
               {sortedFunds.map((f) => {
                 const delta = Number(f.gszzl) || 0;
                 const share = f.share || 0;
-                const cost = f.cost || 0;
                 const curPrice = parseFloat(f.gsz) || 0;
                 const yesterdayPrice = parseFloat(f.dwjz) || 0;
                 
                 const holdAmount = share * curPrice;
                 const dayIncome = share * (curPrice - yesterdayPrice);
-                const totalIncome = share * (curPrice - cost);
                 
                 return (
                   <tr key={f.code}>
-                    {/* 组合列：名称在上，代码+涨跌在下 */}
                     <td>
-                      {/* 1. 基金名称：单行截断，防止表格过高 */}
                       <div style={{
                         fontWeight:'bold', 
                         marginBottom: 4,
-                        maxWidth: '160px', 
+                        maxWidth: '180px', 
                         whiteSpace: 'nowrap', 
                         overflow: 'hidden', 
                         textOverflow: 'ellipsis'
                       }} title={f.name}>
                         {f.name}
                       </div>
-                      {/* 2. 代码 + 涨跌幅 */}
                       <div style={{fontSize:12, display:'flex', alignItems:'center', gap:8}}>
                          <span style={{color:'var(--muted)'}}>{f.code}</span>
                          <span style={{fontWeight:'bold', color: getColor(delta)}}>
@@ -434,17 +441,11 @@ export default function HomePage() {
                       {f.gsz}
                     </td>
                     
-                    {/* 已移除独立涨跌幅列 */}
-                    
                     <td style={{fontWeight:'bold'}}>{share > 0 ? fmtMoney(holdAmount) : '-'}</td>
                     <td style={{fontWeight:'bold', color: getColor(dayIncome)}}>
                       {share > 0 ? (dayIncome > 0 ? '+' : '') + fmtMoney(dayIncome) : '-'}
                     </td>
-                    <td style={{fontWeight:'bold', color: getColor(totalIncome)}}>
-                      {share > 0 ? (totalIncome > 0 ? '+' : '') + fmtMoney(totalIncome) : '-'}
-                    </td>
 
-                    <td style={{color:'var(--muted)', fontSize:11}}>{f.gztime ? f.gztime.slice(11) : '-'}</td>
                     <td>
                       <div style={{display:'flex', gap:6, justifyContent:'flex-end'}}>
                         <button 
@@ -574,7 +575,6 @@ export default function HomePage() {
                             </span>
                           </td>
                           <td>
-                            {/* 排行榜名称也做截断优化 */}
                             <div style={{
                               fontWeight:'bold',
                               maxWidth: '180px', 
@@ -603,7 +603,6 @@ export default function HomePage() {
         </div>
       )}
 
-      {/* 持仓编辑弹窗 */}
       {editingFund && (
         <div className="modal-overlay" onClick={() => setEditingFund(null)}>
           <div className="modal" onClick={(e) => e.stopPropagation()} style={{width: 320}}>
@@ -643,7 +642,6 @@ export default function HomePage() {
         </div>
       )}
 
-      {/* 设置弹窗 */}
       {settingsOpen && (
         <div className="modal-overlay" onClick={() => setSettingsOpen(false)}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>
