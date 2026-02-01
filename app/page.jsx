@@ -352,8 +352,11 @@ export default function HomePage() {
       </div>
 
       {funds.length === 0 ? (
-        <div style={{padding:40, textAlign:'center', color:'#999'}}>
-          暂无自选，请添加或查看 <span style={{color:'var(--accent)', cursor:'pointer', fontWeight:'bold'}} onClick={() => { setRankOpen(true); fetchRankings('up', 'all'); }}>热门排行</span>
+        // <div style={{padding:40, textAlign:'center', color:'#999'}}>
+        //   暂无自选，请添加或查看 <span style={{color:'var(--accent)', cursor:'pointer', fontWeight:'bold'}} onClick={() => { setRankOpen(true); fetchRankings('up', 'all'); }}>热门排行</span>
+        // </div>
+      <div style={{padding:40, textAlign:'center', color:'#999'}}>
+          暂无自选，请添加。
         </div>
       ) : (
         <div className="glass" style={{overflowX:'auto'}}>
