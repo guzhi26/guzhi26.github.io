@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useForm, ValidationError } from '@formspree/react';
 import Announcement from "./components/Announcement";
 
-// --- 图标组件 (保持不变) ---
+// --- 图标组件 ---
 function PlusIcon(props) { return (<svg {...props} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /></svg>); }
 function TrashIcon(props) { return (<svg {...props} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"><path d="M3 6h18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /><path d="M8 6l1-2h6l1 2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /><path d="M6 6l1 13a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-13" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /><path d="M10 11v6M14 11v6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /></svg>); }
 function EditIcon(props) { return (<svg {...props} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>); }
@@ -19,7 +19,7 @@ function CloseIcon(props) { return (<svg {...props} xmlns="http://www.w3.org/200
 function ListIcon(props) { return (<svg {...props} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>); }
 function StarIcon({ filled, ...props }) { return (<svg {...props} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill={filled ? "var(--accent)" : "none"}><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>); }
 
-// --- 子组件 (保持不变) ---
+// --- 子组件 ---
 function Stat({ label, value, delta }) {
   const dir = delta > 0 ? 'up' : delta < 0 ? 'down' : '';
   return (
@@ -256,6 +256,27 @@ export default function HomePage() {
     });
     return { totalAmount, totalProfit };
   }, [funds]);
+
+  // --- 清理函数 ---
+  const clearFavorites = () => {
+    if (!favorites.size) return alert('当前没有自选基金');
+    if (!window.confirm('确定要清空所有自选标记吗？')) return;
+    setFavorites(new Set());
+    localStorage.setItem('favorites', '[]');
+    setCurrentTab('all');
+  };
+
+  const clearAll = () => {
+    if (!funds.length) return alert('当前没有添加任何基金');
+    if (!window.confirm('⚠️ 确定要清空列表吗？\n\n此操作将删除所有基金及持仓，且无法恢复！')) return;
+    setFunds([]);
+    setFavorites(new Set());
+    setExpandedCodes(new Set());
+    localStorage.setItem('funds', '[]');
+    localStorage.setItem('favorites', '[]');
+    localStorage.setItem('expandedCodes', '[]');
+    setCurrentTab('all');
+  };
 
   // --- 初始化与同步 ---
   useEffect(() => {
@@ -583,11 +604,16 @@ export default function HomePage() {
         </div>
 
         {funds.length > 0 && (
-          <div className="col-12 glass card" style={{ padding: '16px 24px', display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16 }}>
+          <div className="col-12 glass card" style={{ padding: '16px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16 }}>
              <div style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}><span className="muted" style={{ fontSize: '12px' }}>总持有金额</span><span style={{ fontSize: '20px', fontWeight: 700 }}>{summary.totalAmount.toFixed(2)}</span></div>
                 <div style={{ width: 1, height: 32, background: 'var(--border)' }}></div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}><span className="muted" style={{ fontSize: '12px' }}>今日预估收益</span><span className={summary.totalProfit > 0 ? 'up' : summary.totalProfit < 0 ? 'down' : ''} style={{ fontSize: '20px', fontWeight: 700 }}>{summary.totalProfit > 0 ? '+' : ''}{summary.totalProfit.toFixed(2)}</span></div>
+             </div>
+             {/* 新增：快速清空按钮区域 */}
+             <div style={{ display: 'flex', gap: 12 }}>
+                <button className="button sm" style={{ background: 'transparent', color: 'var(--danger)', border: '1px solid var(--danger)', fontSize: '12px', padding: '6px 12px', height: 'auto' }} onClick={clearFavorites}>清空自选</button>
+                <button className="button sm" style={{ background: 'var(--danger)', color: '#fff', fontSize: '12px', padding: '6px 12px', height: 'auto', border: 'none' }} onClick={clearAll}>清空全部</button>
              </div>
           </div>
         )}
@@ -640,8 +666,8 @@ export default function HomePage() {
                         const amount = parseFloat(f.amount) || 0;
                         const rate = f.estPricedCoverage > 0.05 ? f.estGszzl : (Number(f.gszzl) || 0);
                         const profit = amount * rate / 100;
-                        // Name | Change | Value | Amount | Profit | Delete
-                        const gridTemplate = 'minmax(220px, 1.5fr) 100px 100px 100px 100px 60px'; 
+                        // 修正 Grid Template：Name | Change | Valuation | Amount | Profit | Delete
+                        const gridTemplate = 'minmax(200px, 1.5fr) 90px 90px 90px 90px 50px'; 
                         
                         return (
                           <motion.div
@@ -663,13 +689,13 @@ export default function HomePage() {
                                     <span className="muted code-text" style={{ fontSize: '12px' }}>#{f.code}</span>
                                   </div>
                                 </div>
-                                {/* 涨跌幅列 (前置) */}
+                                {/* 涨跌幅列 - 第二列 */}
                                 <div className="table-cell text-right change-cell">
                                   <span className={f.estPricedCoverage > 0.05 ? (f.estGszzl > 0 ? 'up' : f.estGszzl < 0 ? 'down' : '') : (Number(f.gszzl) > 0 ? 'up' : Number(f.gszzl) < 0 ? 'down' : '')} style={{ fontWeight: 700 }}>
                                     {f.estPricedCoverage > 0.05 ? `${f.estGszzl > 0 ? '+' : ''}${f.estGszzl.toFixed(2)}%` : (typeof f.gszzl === 'number' ? `${f.gszzl > 0 ? '+' : ''}${f.gszzl.toFixed(2)}%` : f.gszzl ?? '—')}
                                   </span>
                                 </div>
-                                {/* 估值/净值列 (后置) */}
+                                {/* 估值/净值列 - 第三列 */}
                                 <div className="table-cell text-right value-cell">
                                   <span style={{ fontWeight: 700 }}>{f.estPricedCoverage > 0.05 ? f.estGsz.toFixed(4) : (f.gsz ?? '—')}</span>
                                 </div>
@@ -688,7 +714,6 @@ export default function HomePage() {
                               </>
                             ) : (
                               <>
-                              {/* 卡片视图代码 */}
                               <div className="row" style={{ marginBottom: 10 }}>
                                 <div className="title">
                                   <button className={`icon-button fav-button ${favorites.has(f.code) ? 'active' : ''}`} onClick={(e) => { e.stopPropagation(); toggleFavorite(f.code); }}><StarIcon width="18" height="18" filled={favorites.has(f.code)} /></button>
@@ -697,7 +722,6 @@ export default function HomePage() {
                                 <div className="actions"><button className="icon-button danger" onClick={() => removeFund(f.code)}><TrashIcon width="18" height="18" /></button></div>
                               </div>
                               <div className="row" style={{ marginBottom: 12 }}>
-                                {/* 修复点：交换了Stat的顺序，将涨跌幅放在左边 */}
                                 <Stat label="涨跌幅" value={f.estPricedCoverage > 0.05 ? `${f.estGszzl > 0 ? '+' : ''}${f.estGszzl.toFixed(2)}%` : (typeof f.gszzl === 'number' ? `${f.gszzl > 0 ? '+' : ''}${f.gszzl.toFixed(2)}%` : f.gszzl ?? '—')} delta={f.estPricedCoverage > 0.05 ? f.estGszzl : (Number(f.gszzl) || 0)} />
                                 <Stat label="估值净值" value={f.estPricedCoverage > 0.05 ? f.estGsz.toFixed(4) : (f.gsz ?? '—')} />
                               </div>
