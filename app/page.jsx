@@ -412,6 +412,7 @@ export default function HomePage() {
       const newFunds = [];
       const failures = [];
       for (const c of codes) {
+        // 先获取最新的funds状态，避免闭包陷阱
         const existing = funds.find(f => f.code === c);
         try {
           const data = await fetchFundData(c);
@@ -423,13 +424,25 @@ export default function HomePage() {
           else failures.push({ code: c });
         }
       }
-      const currentMap = new Map();
-      funds.forEach(f => currentMap.set(f.code, f));
-      newFunds.forEach(f => currentMap.set(f.code, f));
-      const merged = Array.from(currentMap.values());
-      const deduped = cleanAndDedupe(merged);
-      setFunds(deduped);
-      localStorage.setItem('funds', JSON.stringify(deduped));
+      
+      // 使用函数式更新确保不会丢失并发修改
+      setFunds(prev => {
+        const currentMap = new Map();
+        prev.forEach(f => currentMap.set(f.code, f));
+        
+        // 合并新数据，并再次确保金额不丢失
+        newFunds.forEach(f => {
+            const old = currentMap.get(f.code);
+            if (old?.amount && !f.amount) f.amount = old.amount;
+            currentMap.set(f.code, f);
+        });
+        
+        const merged = Array.from(currentMap.values());
+        const deduped = cleanAndDedupe(merged);
+        localStorage.setItem('funds', JSON.stringify(deduped));
+        return deduped;
+      });
+
       if (failures.length > 0) {
         setAddFailures(failures);
         setAddResultOpen(true);
@@ -441,27 +454,43 @@ export default function HomePage() {
     }
   };
 
+  // --- 核心修复：刷新函数 ---
   const refreshAll = async (codes) => {
     if (refreshingRef.current) return;
     refreshingRef.current = true;
     setRefreshing(true);
     const uniqueCodes = Array.from(new Set(codes));
-    const resultMap = new Map();
-    funds.forEach(f => resultMap.set(f.code, f));
 
     try {
-      await Promise.allSettled(uniqueCodes.map(async (c) => {
-        try {
-          const data = await fetchFundData(c);
-          const old = resultMap.get(c);
-          if (old?.amount) data.amount = old.amount;
-          resultMap.set(c, data);
-        } catch (e) { }
-      }));
-      const finalFunds = Array.from(resultMap.values());
-      const deduped = cleanAndDedupe(finalFunds);
-      setFunds(deduped);
-      localStorage.setItem('funds', JSON.stringify(deduped));
+      // 1. 获取所有新数据
+      const results = await Promise.allSettled(uniqueCodes.map(fetchFundData));
+      
+      // 2. 核心：使用函数式更新，确保拿到的是最新一刻的 funds 状态
+      // 这样即使用户在刷新过程中修改了金额，也不会被旧的闭包数据覆盖
+      setFunds(prevFunds => {
+        const nextFunds = [...prevFunds];
+        
+        results.forEach(res => {
+            if (res.status === 'fulfilled') {
+                const newData = res.value;
+                const index = nextFunds.findIndex(f => f.code === newData.code);
+                
+                if (index !== -1) {
+                    // 3. 强制保护：从当前最新状态(prevFunds)中保留 amount
+                    const currentAmount = nextFunds[index].amount;
+                    if (currentAmount) {
+                        newData.amount = currentAmount;
+                    }
+                    nextFunds[index] = newData;
+                }
+            }
+        });
+        
+        const deduped = cleanAndDedupe(nextFunds);
+        localStorage.setItem('funds', JSON.stringify(deduped));
+        return deduped;
+      });
+      
     } catch (e) {
       console.error('Refresh all error', e);
     } finally {
@@ -666,7 +695,7 @@ export default function HomePage() {
                         const amount = parseFloat(f.amount) || 0;
                         const rate = f.estPricedCoverage > 0.05 ? f.estGszzl : (Number(f.gszzl) || 0);
                         const profit = amount * rate / 100;
-                        // --- 核心修改：合并了名字和涨跌幅，移除了独立的涨跌列 ---
+                        // --- 核心修改：精简列数，合并名字和涨跌幅 ---
                         // Template: Name+Change(flexible) | Valuation | Amount | Profit | Delete
                         const gridTemplate = 'minmax(240px, 2fr) 90px 90px 90px 50px'; 
                         
