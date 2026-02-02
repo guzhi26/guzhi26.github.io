@@ -547,15 +547,65 @@ export default function HomePage() {
     return { totalAmount, totalProfit };
   }, [funds]);
 
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-        setShowDropdown(false);
+// --- 新增代码开始：多标签页自动同步 ---
+useEffect(() => {
+  const handleStorageChange = (e) => {
+    // 监听 funds 的变化
+    if (e.key === 'funds') {
+      try {
+        const newFunds = e.newValue ? JSON.parse(e.newValue) : [];
+        setFunds(newFunds);
+      } catch (err) {
+        console.error('同步多标签页数据失败', err);
       }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+    }
+    // 监听 favorites 的变化（如果需要同步自选状态）
+    if (e.key === 'favorites') {
+      try {
+        const newFavs = e.newValue ? new Set(JSON.parse(e.newValue)) : new Set();
+        setFavorites(newFavs);
+      } catch (err) {
+        console.error('同步多标签页自选失败', err);
+      }
+    }
+    // 监听 expandedCodes 的变化（同步展开状态）
+    if (e.key === 'expandedCodes') {
+      try {
+        const newExpanded = e.newValue ? new Set(JSON.parse(e.newValue)) : new Set();
+        setExpandedCodes(newExpanded);
+      } catch (err) {
+        console.error('同步展开状态失败', err);
+      }
+    }
+  };
+
+  // 监听页面可见性变化（当你切回这个标签页时，强制重新读取一次最新数据）
+  const handleVisibilityChange = () => {
+    if (document.visibilityState === 'visible') {
+      const saved = JSON.parse(localStorage.getItem('funds') || '[]');
+      if (Array.isArray(saved) && saved.length > 0) {
+         // 这里做一个简单的去重对比，避免不必要的重渲染
+         setFunds(prev => {
+           const prevJson = JSON.stringify(prev);
+           const newJson = JSON.stringify(saved);
+           return prevJson === newJson ? prev : saved;
+         });
+      }
+      
+      // 同步自选
+      const savedFav = JSON.parse(localStorage.getItem('favorites') || '[]');
+      setFavorites(new Set(savedFav));
+    }
+  };
+
+  window.addEventListener('storage', handleStorageChange);
+  document.addEventListener('visibilitychange', handleVisibilityChange);
+
+  return () => {
+    window.removeEventListener('storage', handleStorageChange);
+    document.removeEventListener('visibilitychange', handleVisibilityChange);
+  };
+}, []); // 空依赖数组，只在组件挂载时执行一次
 
   const toggleFavorite = (code) => {
     setFavorites(prev => {
