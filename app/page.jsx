@@ -1,69 +1,374 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useForm, ValidationError } from '@formspree/react';
+import Announcement from "./components/Announcement";
 
-// --- 图标组件 ---
 function PlusIcon(props) {
-  return <svg {...props} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /></svg>;
+  return (
+    <svg {...props} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none">
+      <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+    </svg>
+  );
 }
+
 function TrashIcon(props) {
-  return <svg {...props} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"><path d="M3 6h18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /><path d="M8 6l1-2h6l1 2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /><path d="M6 6l1 13a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-13" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /><path d="M10 11v6M14 11v6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /></svg>;
+  return (
+    <svg {...props} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none">
+      <path d="M3 6h18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      <path d="M8 6l1-2h6l1 2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      <path d="M6 6l1 13a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-13" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      <path d="M10 11v6M14 11v6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+    </svg>
+  );
 }
+
 function SettingsIcon(props) {
-  return <svg {...props} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="2" /><path d="M19.4 15a7.97 7.97 0 0 0 .1-2l2-1.5-2-3.5-2.3.5a8.02 8.02 0 0 0-1.7-1l-.4-2.3h-4l-.4 2.3a8.02 8.02 0 0 0-1.7 1l-2.3-.5-2 3.5 2 1.5a7.97 7.97 0 0 0 .1 2l-2 1.5 2 3.5 2.3-.5a8.02 8.02 0 0 0 1.7 1l.4 2.3h4l.4-2.3a8.02 8.02 0 0 0 1.7-1l2.3.5 2-3.5-2-1.5z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>;
+  return (
+    <svg {...props} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none">
+      <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="2" />
+      <path d="M19.4 15a7.97 7.97 0 0 0 .1-2l2-1.5-2-3.5-2.3.5a8.02 8.02 0 0 0-1.7-1l-.4-2.3h-4l-.4 2.3a8.02 8.02 0 0 0-1.7 1l-2.3-.5-2 3.5 2 1.5a7.97 7.97 0 0 0 .1 2l-2 1.5 2 3.5 2.3-.5a8.02 8.02 0 0 0 1.7 1l.4 2.3h4l.4-2.3a8.02 8.02 0 0 0 1.7-1l2.3.5 2-3.5-2-1.5z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
 }
+
 function RefreshIcon(props) {
-  return <svg {...props} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"><path d="M4 12a8 8 0 0 1 12.5-6.9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /><path d="M16 5h3v3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /><path d="M20 12a8 8 0 0 1-12.5 6.9" stroke="currentColor" strokeWidth="2" /><path d="M8 19H5v-3" stroke="currentColor" strokeWidth="2" /></svg>;
+  return (
+    <svg {...props} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none">
+      <path d="M4 12a8 8 0 0 1 12.5-6.9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      <path d="M16 5h3v3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M20 12a8 8 0 0 1-12.5 6.9" stroke="currentColor" strokeWidth="2" />
+      <path d="M8 19H5v-3" stroke="currentColor" strokeWidth="2" />
+    </svg>
+  );
 }
-function TrophyIcon(props) {
-  return <svg {...props} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"><path d="M8 21h8" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/><path d="M12 17v4" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/><path d="M7 4h10c.6 0 1 .4 1 1v7c0 2.2-1.8 4-4 4H8c-2.2 0-4-1.8-4-4V5c0-.6.4-1 1-1z" stroke="currentColor" strokeWidth="2"/><path d="M18 4h2a2 2 0 0 1 2 2v2a2 2 0 0 1-2 2h-2M6 4H4a2 2 0 0 0-2 2v2a2 2 0 0 0 2 2h2" stroke="currentColor" strokeWidth="2"/></svg>;
+
+function ChevronIcon(props) {
+  return (
+    <svg {...props} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none">
+      <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
 }
-function EditIcon(props) {
-  return <svg {...props} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>;
+
+function SortIcon(props) {
+  return (
+    <svg {...props} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none">
+      <path d="M3 7h18M6 12h12M9 17h6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+    </svg>
+  );
 }
-function SearchIcon(props) {
-  return <svg {...props} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><path d="M21 21l-4.35-4.35" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>;
+
+function GridIcon(props) {
+  return (
+    <svg {...props} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none">
+      <rect x="3" y="3" width="7" height="7" rx="1" stroke="currentColor" strokeWidth="2" />
+      <rect x="14" y="3" width="7" height="7" rx="1" stroke="currentColor" strokeWidth="2" />
+      <rect x="14" y="14" width="7" height="7" rx="1" stroke="currentColor" strokeWidth="2" />
+      <rect x="3" y="14" width="7" height="7" rx="1" stroke="currentColor" strokeWidth="2" />
+    </svg>
+  );
 }
-function ClockIcon(props) {
-  return <svg {...props} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2"/><polyline points="12 6 12 12 16 14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>;
+
+function CloseIcon(props) {
+  return (
+    <svg {...props} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none">
+      <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function ListIcon(props) {
+  return (
+    <svg {...props} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none">
+      <path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function StarIcon({ filled, ...props }) {
+  return (
+    <svg {...props} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill={filled ? "var(--accent)" : "none"}>
+      <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function Stat({ label, value, delta }) {
+  const dir = delta > 0 ? 'up' : delta < 0 ? 'down' : '';
+  return (
+    <div className="stat">
+      <span className="label">{label}</span>
+      <span className={`value ${dir}`}>{value}</span>
+    </div>
+  );
+}
+
+function FeedbackModal({ onClose }) {
+  const [state, handleSubmit] = useForm("xdadgvjd");
+
+  const onSubmit = (e) => {
+    const form = e?.target;
+    const nicknameInput = form?.elements?.namedItem?.('nickname');
+    if (nicknameInput && typeof nicknameInput.value === 'string') {
+      const v = nicknameInput.value.trim();
+      if (!v) nicknameInput.value = '匿名';
+    }
+    return handleSubmit(e);
+  };
+
+  return (
+    <motion.div
+      className="modal-overlay"
+      role="dialog"
+      aria-modal="true"
+      aria-label="意见反馈"
+      onClick={onClose}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+    >
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95, y: 20 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.95, y: 20 }}
+        className="glass card modal feedback-modal"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="title" style={{ marginBottom: 20, justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <SettingsIcon width="20" height="20" />
+            <span>意见反馈</span>
+          </div>
+          <button className="icon-button" onClick={onClose} style={{ border: 'none', background: 'transparent' }}>
+            <CloseIcon width="20" height="20" />
+          </button>
+        </div>
+
+        {state.succeeded ? (
+          <div className="success-message" style={{ textAlign: 'center', padding: '20px 0' }}>
+            <div style={{ fontSize: '48px', marginBottom: 16 }}>🎉</div>
+            <h3 style={{ marginBottom: 8 }}>感谢您的反馈！</h3>
+            <p className="muted">我们已收到您的建议，会尽快查看。</p>
+            <button className="button" onClick={onClose} style={{ marginTop: 24, width: '100%' }}>
+              关闭
+            </button>
+          </div>
+        ) : (
+          <form onSubmit={onSubmit} className="feedback-form">
+            <div className="form-group" style={{ marginBottom: 16 }}>
+              <label htmlFor="nickname" className="muted" style={{ display: 'block', marginBottom: 8, fontSize: '14px' }}>
+                您的昵称（可选）
+              </label>
+              <input
+                id="nickname"
+                type="text"
+                name="nickname"
+                className="input"
+                placeholder="匿名"
+                style={{ width: '100%' }}
+              />
+              <ValidationError prefix="Nickname" field="nickname" errors={state.errors} className="error-text" />
+            </div>
+
+            <div className="form-group" style={{ marginBottom: 20 }}>
+              <label htmlFor="message" className="muted" style={{ display: 'block', marginBottom: 8, fontSize: '14px' }}>
+                反馈内容
+              </label>
+              <textarea
+                id="message"
+                name="message"
+                className="input"
+                required
+                placeholder="请描述您遇到的问题或建议..."
+                style={{ width: '100%', minHeight: '120px', padding: '12px', resize: 'vertical' }}
+              />
+              <ValidationError prefix="Message" field="message" errors={state.errors} className="error-text" />
+            </div>
+
+            <button className="button" type="submit" disabled={state.submitting} style={{ width: '100%' }}>
+              {state.submitting ? '发送中...' : '提交反馈'}
+            </button>
+          </form>
+        )}
+      </motion.div>
+    </motion.div>
+  );
+}
+
+function AddResultModal({ failures, onClose }) {
+  return (
+    <motion.div
+      className="modal-overlay"
+      role="dialog"
+      aria-modal="true"
+      aria-label="添加结果"
+      onClick={onClose}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+    >
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95, y: 20 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.95, y: 20 }}
+        className="glass card modal"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="title" style={{ marginBottom: 12, justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <SettingsIcon width="20" height="20" />
+            <span>部分基金添加失败</span>
+          </div>
+          <button className="icon-button" onClick={onClose} style={{ border: 'none', background: 'transparent' }}>
+            <CloseIcon width="20" height="20" />
+          </button>
+        </div>
+        <div className="muted" style={{ marginBottom: 12, fontSize: '14px' }}>
+          未获取到估值数据的基金如下：
+        </div>
+        <div className="list">
+          {failures.map((it, idx) => (
+            <div className="item" key={idx}>
+              <span className="name">{it.name || '未知名称'}</span>
+              <div className="values">
+                <span className="badge">#{it.code}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+        <div className="row" style={{ justifyContent: 'flex-end', marginTop: 16 }}>
+          <button className="button" onClick={onClose}>知道了</button>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
 }
 
 export default function HomePage() {
   const [funds, setFunds] = useState([]);
-  const [code, setCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const timerRef = useRef(null);
-  
+  const refreshingRef = useRef(false);
+
+  // 刷新频率状态
   const [refreshMs, setRefreshMs] = useState(30000);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [tempSeconds, setTempSeconds] = useState(30);
+
+  // 全局刷新状态
   const [refreshing, setRefreshing] = useState(false);
 
-  const [sortConfig, setSortConfig] = useState({ key: null, direction: 'desc' });
+  // 【修改处1】收起/展开状态：改为记录“已展开”的代码
+  // 默认为空 Set，即默认所有都是收起状态
+  const [expandedCodes, setExpandedCodes] = useState(new Set());
 
-  const [editingFund, setEditingFund] = useState(null);
-  const [editShare, setEditShare] = useState('');
-  const [editCost, setEditCost] = useState('');
+  // 自选状态
+  const [favorites, setFavorites] = useState(new Set());
+  const [currentTab, setCurrentTab] = useState('all');
 
-  const [rankOpen, setRankOpen] = useState(false);
-  const [rankType, setRankType] = useState('up');
-  const [rankCategory, setRankCategory] = useState('all');
-  const [rankList, setRankList] = useState([]);
-  const [rankLoading, setRankLoading] = useState(false);
-  const [rankSearch, setRankSearch] = useState('');
+  // 排序状态
+  const [sortBy, setSortBy] = useState('yield'); // default, name, yield, code
+
+  // 视图模式
+  const [viewMode, setViewMode] = useState('card'); // card, list
+
+  // 反馈弹窗状态
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
+  const [feedbackNonce, setFeedbackNonce] = useState(0);
+
+  // 搜索相关状态
+  const [searchTerm, setSearchTerm] = useState('');
+  const [searchResults, setSearchResults] = useState([]);
+  const [selectedFunds, setSelectedFunds] = useState([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const searchTimeoutRef = useRef(null);
+  const dropdownRef = useRef(null);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [addResultOpen, setAddResultOpen] = useState(false);
+  const [addFailures, setAddFailures] = useState([]);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setShowDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const toggleFavorite = (code) => {
+    setFavorites(prev => {
+      const next = new Set(prev);
+      if (next.has(code)) {
+        next.delete(code);
+      } else {
+        next.add(code);
+      }
+      localStorage.setItem('favorites', JSON.stringify(Array.from(next)));
+      if (next.size === 0) setCurrentTab('all');
+      return next;
+    });
+  };
+
+  // 【修改处2】切换展开/收起函数
+  const toggleExpand = (code) => {
+    setExpandedCodes(prev => {
+      const next = new Set(prev);
+      if (next.has(code)) {
+        next.delete(code);
+      } else {
+        next.add(code);
+      }
+      // 同步到本地存储，注意 key 改为了 expandedCodes
+      localStorage.setItem('expandedCodes', JSON.stringify(Array.from(next)));
+      return next;
+    });
+  };
+
+  // 按 code 去重，保留第一次出现的项，避免列表重复
+  const dedupeByCode = (list) => {
+    const seen = new Set();
+    return list.filter((f) => {
+      const c = f?.code;
+      if (!c || seen.has(c)) return false;
+      seen.add(c);
+      return true;
+    });
+  };
 
   useEffect(() => {
     try {
       const saved = JSON.parse(localStorage.getItem('funds') || '[]');
       if (Array.isArray(saved) && saved.length) {
-        setFunds(saved);
-        refreshAll(saved);
+        const deduped = dedupeByCode(saved);
+        setFunds(deduped);
+        localStorage.setItem('funds', JSON.stringify(deduped));
+        const codes = Array.from(new Set(deduped.map((f) => f.code)));
+        if (codes.length) refreshAll(codes);
       }
       const savedMs = parseInt(localStorage.getItem('refreshMs') || '30000', 10);
       if (Number.isFinite(savedMs) && savedMs >= 5000) {
         setRefreshMs(savedMs);
         setTempSeconds(Math.round(savedMs / 1000));
+      }
+      // 【修改处3】加载展开状态
+      const savedExpanded = JSON.parse(localStorage.getItem('expandedCodes') || '[]');
+      if (Array.isArray(savedExpanded)) {
+        setExpandedCodes(new Set(savedExpanded));
+      }
+      // 加载自选状态
+      const savedFavorites = JSON.parse(localStorage.getItem('favorites') || '[]');
+      if (Array.isArray(savedFavorites)) {
+        setFavorites(new Set(savedFavorites));
+      }
+      // 加载视图模式
+      const savedViewMode = localStorage.getItem('viewMode');
+      if (savedViewMode === 'card' || savedViewMode === 'list') {
+        setViewMode(savedViewMode);
       }
     } catch {}
   }, []);
@@ -71,147 +376,323 @@ export default function HomePage() {
   useEffect(() => {
     if (timerRef.current) clearInterval(timerRef.current);
     timerRef.current = setInterval(() => {
-      refreshAll(funds);
+      const codes = Array.from(new Set(funds.map((f) => f.code)));
+      if (codes.length) refreshAll(codes);
     }, refreshMs);
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
   }, [funds, refreshMs]);
 
+  // --- 辅助：JSONP 数据抓取逻辑 ---
   const loadScript = (url) => {
     return new Promise((resolve, reject) => {
       const script = document.createElement('script');
       script.src = url;
       script.async = true;
       script.onload = () => {
-        setTimeout(() => {
-          if (document.body.contains(script)) document.body.removeChild(script);
-          resolve();
-        }, 50);
+        document.body.removeChild(script);
+        resolve();
       };
       script.onerror = () => {
-        if (document.body.contains(script)) document.body.removeChild(script);
-        reject(new Error('Fetch failed'));
+        document.body.removeChild(script);
+        reject(new Error('数据加载失败'));
       };
       document.body.appendChild(script);
     });
   };
 
   const fetchFundData = async (c) => {
-    return new Promise((resolve, reject) => {
+    return new Promise(async (resolve, reject) => {
+      // 腾讯接口识别逻辑优化
+      const getTencentPrefix = (code) => {
+        if (code.startsWith('6') || code.startsWith('9')) return 'sh';
+        if (code.startsWith('0') || code.startsWith('3')) return 'sz';
+        if (code.startsWith('4') || code.startsWith('8')) return 'bj';
+        return 'sz';
+      };
+
       const gzUrl = `https://fundgz.1234567.com.cn/js/${c}.js?rt=${Date.now()}`;
-      const originalJsonpgz = window.jsonpgz;
+
+      // 使用更安全的方式处理全局回调，避免并发覆盖
+      const currentCallback = `jsonpgz_${c}_${Math.random().toString(36).slice(2, 7)}`;
+
+      // 动态拦截并处理 jsonpgz 回调
       const scriptGz = document.createElement('script');
+      // 东方财富接口固定调用 jsonpgz，我们通过修改全局变量临时捕获它
       scriptGz.src = gzUrl;
-      
+
+      const originalJsonpgz = window.jsonpgz;
       window.jsonpgz = (json) => {
-        window.jsonpgz = originalJsonpgz;
+        window.jsonpgz = originalJsonpgz; // 立即恢复
+        if (!json || typeof json !== 'object') {
+          reject(new Error('未获取到基金估值数据'));
+          return;
+        }
         const gszzlNum = Number(json.gszzl);
-        resolve({
+        const gzData = {
           code: json.fundcode,
           name: json.name,
           dwjz: json.dwjz,
           gsz: json.gsz,
           gztime: json.gztime,
           gszzl: Number.isFinite(gszzlNum) ? gszzlNum : json.gszzl
-        });
+        };
+
+        // 获取重仓股票列表
+        const holdingsUrl = `https://fundf10.eastmoney.com/FundArchivesDatas.aspx?type=jjcc&code=${c}&topline=10&year=&month=&rt=${Date.now()}`;
+        loadScript(holdingsUrl).then(async () => {
+          let holdings = [];
+          const html = window.apidata?.content || '';
+          const rows = html.match(/<tr[\s\S]*?<\/tr>/gi) || [];
+          for (const r of rows) {
+            const cells = (r.match(/<td[\s\S]*?>([\s\S]*?)<\/td>/gi) || []).map(td => td.replace(/<[^>]*>/g, '').trim());
+            const codeIdx = cells.findIndex(txt => /^\d{6}$/.test(txt));
+            const weightIdx = cells.findIndex(txt => /\d+(?:\.\d+)?\s*%/.test(txt));
+            if (codeIdx >= 0 && weightIdx >= 0) {
+              holdings.push({
+                code: cells[codeIdx],
+                name: cells[codeIdx + 1] || '',
+                weight: cells[weightIdx],
+                change: null
+              });
+            }
+          }
+
+          holdings = holdings.slice(0, 10);
+
+          if (holdings.length) {
+            try {
+              const tencentCodes = holdings.map(h => `s_${getTencentPrefix(h.code)}${h.code}`).join(',');
+              const quoteUrl = `https://qt.gtimg.cn/q=${tencentCodes}`;
+
+              await new Promise((resQuote) => {
+                const scriptQuote = document.createElement('script');
+                scriptQuote.src = quoteUrl;
+                scriptQuote.onload = () => {
+                  holdings.forEach(h => {
+                    const varName = `v_s_${getTencentPrefix(h.code)}${h.code}`;
+                    const dataStr = window[varName];
+                    if (dataStr) {
+                      const parts = dataStr.split('~');
+                      // parts[5] 是涨跌幅
+                      if (parts.length > 5) {
+                        h.change = parseFloat(parts[5]);
+                      }
+                    }
+                  });
+                  if (document.body.contains(scriptQuote)) document.body.removeChild(scriptQuote);
+                  resQuote();
+                };
+                scriptQuote.onerror = () => {
+                  if (document.body.contains(scriptQuote)) document.body.removeChild(scriptQuote);
+                  resQuote();
+                };
+                document.body.appendChild(scriptQuote);
+              });
+            } catch (e) {
+              console.error('获取股票涨跌幅失败', e);
+            }
+          }
+
+          resolve({ ...gzData, holdings });
+        }).catch(() => resolve({ ...gzData, holdings: [] }));
       };
 
       scriptGz.onerror = () => {
         window.jsonpgz = originalJsonpgz;
         if (document.body.contains(scriptGz)) document.body.removeChild(scriptGz);
-        reject(new Error('加载失败'));
+        reject(new Error('基金数据加载失败'));
       };
 
       document.body.appendChild(scriptGz);
+      // 加载完立即移除脚本
       setTimeout(() => {
         if (document.body.contains(scriptGz)) document.body.removeChild(scriptGz);
-      }, 3000);
+      }, 5000);
     });
   };
 
-  const fetchRankings = async (type = rankType, category = rankCategory) => {
-    setRankLoading(true);
-    setRankList([]);
-    setRankType(type);
-    setRankCategory(category);
-    setRankSearch('');
-    
-    const order = type === 'up' ? 'desc' : 'asc';
-    const baseUrl = `https://fund.eastmoney.com/data/rankhandler.aspx?op=ph&dt=kf&ft=${category}&rs=&gs=0&sc=zzf&pi=1&pn=200&dx=1&st=${order}&v=${Math.random()}`;
+  const performSearch = async (val) => {
+    if (!val.trim()) {
+      setSearchResults([]);
+      return;
+    }
+    setIsSearching(true);
+    // 使用 JSONP 方式获取数据，添加 callback 参数
+    const callbackName = `SuggestData_${Date.now()}`;
+    const url = `https://fundsuggest.eastmoney.com/FundSearch/api/FundSearchAPI.ashx?m=1&key=${encodeURIComponent(val)}&callback=${callbackName}&_=${Date.now()}`;
     
     try {
-      window.rankData = null;
-      await loadScript(baseUrl);
-      
-      if (window.rankData && window.rankData.datas) {
-        let list = window.rankData.datas.map(item => {
-          const parts = item.split(',');
-          return {
-            code: parts[0],
-            name: parts[1],
-            gszzl: parseFloat(parts[6])
-          };
-        });
+      await new Promise((resolve, reject) => {
+        window[callbackName] = (data) => {
+          if (data && data.Datas) {
+            // 过滤出基金类型的数据 (CATEGORY 为 700 是公募基金)
+            const fundsOnly = data.Datas.filter(d => 
+              d.CATEGORY === 700 || 
+              d.CATEGORY === "700" || 
+              d.CATEGORYDESC === "基金"
+            );
+            setSearchResults(fundsOnly);
+          }
+          delete window[callbackName];
+          resolve();
+        };
 
-        if (type === 'up') {
-          list.sort((a, b) => b.gszzl - a.gszzl);
-        } else {
-          list.sort((a, b) => a.gszzl - b.gszzl);
-        }
-
-        setRankList(list);
-      }
+        const script = document.createElement('script');
+        script.src = url;
+        script.async = true;
+        script.onload = () => {
+          if (document.body.contains(script)) document.body.removeChild(script);
+        };
+        script.onerror = () => {
+          if (document.body.contains(script)) document.body.removeChild(script);
+          delete window[callbackName];
+          reject(new Error('搜索请求失败'));
+        };
+        document.body.appendChild(script);
+      });
     } catch (e) {
-      console.error('Ranking fetch error', e);
+      console.error('搜索失败', e);
     } finally {
-      setRankLoading(false);
+      setIsSearching(false);
     }
   };
 
-  const refreshAll = async (currentFunds) => {
-    if (refreshing) return;
-    setRefreshing(true);
+  const handleSearchInput = (e) => {
+    const val = e.target.value;
+    setSearchTerm(val);
+    if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
+    searchTimeoutRef.current = setTimeout(() => performSearch(val), 300);
+  };
+
+  const toggleSelectFund = (fund) => {
+    setSelectedFunds(prev => {
+      const exists = prev.find(f => f.CODE === fund.CODE);
+      if (exists) {
+        return prev.filter(f => f.CODE !== fund.CODE);
+      }
+      return [...prev, fund];
+    });
+  };
+
+  const batchAddFunds = async () => {
+    if (selectedFunds.length === 0) return;
+    setLoading(true);
+    setError('');
+    
     try {
-      const updated = [];
-      for (const f of currentFunds) {
+      const newFunds = [];
+      for (const f of selectedFunds) {
+        if (funds.some(existing => existing.code === f.CODE)) continue;
         try {
-          const data = await fetchFundData(f.code);
-          updated.push({ ...data, share: f.share || 0, cost: f.cost || 0 });
+          const data = await fetchFundData(f.CODE);
+          newFunds.push(data);
         } catch (e) {
-          updated.push(f);
+          console.error(`添加基金 ${f.CODE} 失败`, e);
         }
       }
-      if (updated.length) {
+      
+      if (newFunds.length > 0) {
+        const updated = dedupeByCode([...newFunds, ...funds]);
         setFunds(updated);
         localStorage.setItem('funds', JSON.stringify(updated));
       }
-    } catch (e) { console.error(e); } finally { setRefreshing(false); }
+      
+      setSelectedFunds([]);
+      setSearchTerm('');
+      setSearchResults([]);
+    } catch (e) {
+      setError('批量添加失败');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const addFund = async (e, inputCode) => {
-    if (e) e.preventDefault();
-    setError('');
-    const clean = (inputCode || code).trim();
-    if (!clean) return setError('请输入代码');
-    
-    if (funds.some((f) => f.code === clean)) {
-      if (!inputCode) setError('已存在，请勿重复添加');
-      return; 
+  const refreshAll = async (codes) => {
+    if (refreshingRef.current) return;
+    refreshingRef.current = true;
+    setRefreshing(true);
+    const uniqueCodes = Array.from(new Set(codes));
+    try {
+      const updated = [];
+      for (const c of uniqueCodes) {
+        try {
+          const data = await fetchFundData(c);
+          updated.push(data);
+        } catch (e) {
+          console.error(`刷新基金 ${c} 失败`, e);
+          const old = funds.find((f) => f.code === c);
+          if (old) updated.push(old);
+        }
+      }
+      const deduped = dedupeByCode(updated);
+      if (deduped.length) {
+        setFunds(deduped);
+        localStorage.setItem('funds', JSON.stringify(deduped));
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      refreshingRef.current = false;
+      setRefreshing(false);
     }
+  };
 
+  const toggleViewMode = () => {
+    const nextMode = viewMode === 'card' ? 'list' : 'card';
+    setViewMode(nextMode);
+    localStorage.setItem('viewMode', nextMode);
+  };
+
+  const addFund = async (e) => {
+    e?.preventDefault?.();
+    setError('');
+    const manualTokens = String(searchTerm || '')
+      .split(/[^0-9A-Za-z]+/)
+      .map(t => t.trim())
+      .filter(t => t.length > 0);
+    const selectedCodes = Array.from(new Set([
+      ...selectedFunds.map(f => f.CODE),
+      ...manualTokens.filter(t => /^\d{6}$/.test(t))
+    ]));
+    if (selectedCodes.length === 0) {
+      setError('请输入或选择基金代码');
+      return;
+    }
     setLoading(true);
     try {
-      const data = await fetchFundData(clean);
-      const newFund = { ...data, share: 0, cost: 0 };
-      const next = [newFund, ...funds];
-      setFunds(next);
-      localStorage.setItem('funds', JSON.stringify(next));
-      if (!inputCode) setCode('');
-    } catch (e) { 
-      if (!inputCode) setError('添加失败，请检查代码'); 
-    } finally { 
-      setLoading(false); 
+      const newFunds = [];
+      const failures = [];
+      const nameMap = {};
+      selectedFunds.forEach(f => { nameMap[f.CODE] = f.NAME; });
+      for (const c of selectedCodes) {
+        if (funds.some((f) => f.code === c)) continue;
+        try {
+          const data = await fetchFundData(c);
+          newFunds.push(data);
+        } catch (err) {
+          failures.push({ code: c, name: nameMap[c] });
+        }
+      }
+      if (newFunds.length === 0) {
+        setError('未添加任何新基金');
+      } else {
+        const next = dedupeByCode([...newFunds, ...funds]);
+        setFunds(next);
+        localStorage.setItem('funds', JSON.stringify(next));
+      }
+      setSearchTerm('');
+      setSelectedFunds([]);
+      setShowDropdown(false);
+      if (failures.length > 0) {
+        setAddFailures(failures);
+        setAddResultOpen(true);
+      }
+    } catch (e) {
+      setError(e.message || '添加失败');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -219,11 +700,32 @@ export default function HomePage() {
     const next = funds.filter((f) => f.code !== removeCode);
     setFunds(next);
     localStorage.setItem('funds', JSON.stringify(next));
+
+    // 【修改处4】同步删除展开状态
+    setExpandedCodes(prev => {
+      if (!prev.has(removeCode)) return prev;
+      const nextSet = new Set(prev);
+      nextSet.delete(removeCode);
+      localStorage.setItem('expandedCodes', JSON.stringify(Array.from(nextSet)));
+      return nextSet;
+    });
+
+    // 同步删除自选状态
+    setFavorites(prev => {
+      if (!prev.has(removeCode)) return prev;
+      const nextSet = new Set(prev);
+      nextSet.delete(removeCode);
+      localStorage.setItem('favorites', JSON.stringify(Array.from(nextSet)));
+      if (nextSet.size === 0) setCurrentTab('all');
+      return nextSet;
+    });
   };
 
   const manualRefresh = async () => {
-    if (refreshing) return;
-    await refreshAll(funds);
+    if (refreshingRef.current) return;
+    const codes = Array.from(new Set(funds.map((f) => f.code)));
+    if (!codes.length) return;
+    await refreshAll(codes);
   };
 
   const saveSettings = (e) => {
@@ -234,442 +736,465 @@ export default function HomePage() {
     setSettingsOpen(false);
   };
 
-  const openEdit = (fund) => {
-    setEditingFund(fund);
-    setEditShare(fund.share || '');
-    setEditCost(fund.cost || '');
-  };
-
-  const saveEdit = () => {
-    if (!editingFund) return;
-    const next = funds.map(f => {
-      if (f.code === editingFund.code) {
-        return { 
-          ...f, 
-          share: parseFloat(editShare) || 0, 
-          cost: parseFloat(editCost) || 0 
-        };
-      }
-      return f;
-    });
-    setFunds(next);
-    localStorage.setItem('funds', JSON.stringify(next));
-    setEditingFund(null);
-  };
-
-  const handleSort = (key) => {
-    let direction = 'desc';
-    if (sortConfig.key === key && sortConfig.direction === 'desc') {
-      direction = 'asc';
-    }
-    setSortConfig({ key, direction });
-  };
-
-  const sortedFunds = [...funds].sort((a, b) => {
-    if (!sortConfig.key) return 0;
-    
-    let valA = 0, valB = 0;
-    
-    if (sortConfig.key === 'holdAmount') {
-      valA = (parseFloat(a.gsz) || 0) * (a.share || 0);
-      valB = (parseFloat(b.gsz) || 0) * (b.share || 0);
-    } else if (sortConfig.key === 'dayIncome') {
-      valA = (a.share || 0) * ((parseFloat(a.gsz) || 0) - (parseFloat(a.dwjz) || 0));
-      valB = (b.share || 0) * ((parseFloat(b.gsz) || 0) - (parseFloat(b.dwjz) || 0));
-    } else if (sortConfig.key === 'totalIncome') {
-      valA = (a.share || 0) * ((parseFloat(a.gsz) || 0) - (a.cost || 0));
-      valB = (b.share || 0) * ((parseFloat(b.gsz) || 0) - (b.cost || 0));
-    } else {
-      valA = parseFloat(a[sortConfig.key]) || 0;
-      valB = parseFloat(b[sortConfig.key]) || 0;
-    }
-    
-    return sortConfig.direction === 'asc' ? valA - valB : valB - valA;
-  });
-
-  const fmtMoney = (val) => isFinite(val) ? val.toFixed(2) : '—';
-  const getColor = (val) => val > 0 ? 'var(--danger)' : val < 0 ? 'var(--success)' : 'inherit';
-
-  const filteredRankList = rankList.filter(item => {
-    if (!rankSearch) return true;
-    return item.name.includes(rankSearch) || item.code.includes(rankSearch);
-  });
-
-  const lastUpdateTime = funds.length > 0 ? funds[0].gztime : '--';
+  useEffect(() => {
+    const onKey = (ev) => {
+      if (ev.key === 'Escape' && settingsOpen) setSettingsOpen(false);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [settingsOpen]);
 
   return (
     <div className="container content">
-      <div className="navbar">
+      <Announcement />
+      <div className="navbar glass">
         {refreshing && <div className="loading-bar"></div>}
         <div className="brand">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" style={{marginRight:8}}>
-             <path d="M3 3v18h18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-             <path d="M18.5 7.5l-6 6-4-4-5 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+            <circle cx="12" cy="12" r="10" stroke="var(--accent)" strokeWidth="2" />
+            <path d="M5 14c2-4 7-6 14-5" stroke="var(--primary)" strokeWidth="2" />
           </svg>
-          <span>自选基金助手</span>
+          <span>实时基金估值</span>
         </div>
         <div className="actions">
-          <button 
-            className="icon-button" 
-            onClick={() => { setRankOpen(true); fetchRankings('up', 'all'); }} 
-            title="热门排行"
-            style={{color: 'var(--accent)', borderColor: 'var(--accent)'}}
+          <div className="badge" title="当前刷新频率">
+            <span>刷新</span>
+            <strong>{Math.round(refreshMs / 1000)}秒</strong>
+          </div>
+          <button
+            className="icon-button"
+            aria-label="立即刷新"
+            onClick={manualRefresh}
+            disabled={refreshing || funds.length === 0}
+            aria-busy={refreshing}
+            title="立即刷新"
           >
-            <TrophyIcon width="16" height="16" />
+            <RefreshIcon className={refreshing ? 'spin' : ''} width="18" height="18" />
           </button>
-          <span style={{width:8}}></span>
-          <button className="icon-button" onClick={manualRefresh} title="刷新">
-            <RefreshIcon className={refreshing ? 'spin' : ''} width="16" height="16" />
-          </button>
-          <button className="icon-button" onClick={() => setSettingsOpen(true)} title="设置">
-            <SettingsIcon width="16" height="16" />
+          <button
+            className="icon-button"
+            aria-label="打开设置"
+            onClick={() => setSettingsOpen(true)}
+            title="设置"
+          >
+            <SettingsIcon width="18" height="18" />
           </button>
         </div>
       </div>
 
-      <div className="glass add-fund-section">
-        <div style={{fontSize:12, fontWeight:'bold', color:'var(--accent)'}}>快速添加</div>
-        <form className="form" onSubmit={(e) => addFund(e, null)}>
-          <input
-            className="input"
-            placeholder="输入代码"
-            value={code}
-            onChange={(e) => setCode(e.target.value)}
-            inputMode="numeric"
-          />
-          <button className="button" type="submit" disabled={loading}>
-            {loading ? '...' : '+ 添加'}
-          </button>
-        </form>
-        {error && <span style={{color:'var(--danger)', fontSize:12}}>{error}</span>}
-      </div>
-
-      {funds.length === 0 ? (
-        <div style={{padding:40, textAlign:'center', color:'#999'}}>
-          暂无自选，请添加或查看 <span style={{color:'var(--accent)', cursor:'pointer', fontWeight:'bold'}} onClick={() => { setRankOpen(true); fetchRankings('up', 'all'); }}>热门排行</span>
-        </div>
-      ) : (
-        <div className="glass" style={{overflowX:'auto'}}>
-          <div style={{
-            padding: '8px 12px', 
-            borderBottom: '1px solid #eee', 
-            background: '#fafafa',
-            display: 'flex', 
-            justifyContent: 'flex-end',
-            alignItems: 'center',
-            fontSize: 11,
-            color: '#888'
-          }}>
-             <div style={{display:'flex', alignItems:'center', gap:4}}>
-               <ClockIcon width="12" height="12" />
-               <span>数据时间: {lastUpdateTime}</span>
-             </div>
+      <div className="grid">
+        <div className="col-12 glass card add-fund-section" role="region" aria-label="添加基金">
+          <div className="title" style={{ marginBottom: 12 }}>
+            <PlusIcon width="20" height="20" />
+            <span>添加基金</span>
+            <span className="muted">搜索并选择基金（支持名称或代码）</span>
           </div>
-
-          <table className="fund-table">
-            <thead>
-              <tr>
-                {/* 重新分配后的宽度：
-                   - 概况: 35% (增加，让名字更从容)
-                   - 估值: 20% (增加)
-                   - 持有金额: 20% (增加)
-                   - 今日收益: 15% (保持)
-                   - 操作: 10% (增加)
-                */}
-                <th style={{width:'35%'}}>
-                  <div>基金概况</div>
-                  <div style={{fontSize:11, fontWeight:'normal', color:'#666', marginTop:2, display:'flex', gap:10}}>
-                     <span>代码</span>
-                     <span 
-                        onClick={() => handleSort('gszzl')} 
-                        style={{cursor:'pointer', textDecoration: sortConfig.key === 'gszzl' ? 'underline' : 'none', color: sortConfig.key === 'gszzl' ? 'var(--accent)' : 'inherit'}}
-                     >
-                        涨跌 {sortConfig.key === 'gszzl' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
-                     </span>
+          
+          <div className="search-container" ref={dropdownRef}>
+            <form className="form" onSubmit={addFund}>
+              <div className="search-input-wrapper" style={{ flex: 1, gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                {selectedFunds.length > 0 && (
+                  <div className="selected-inline-chips">
+                    {selectedFunds.map(fund => (
+                      <div key={fund.CODE} className="fund-chip">
+                        <span>{fund.NAME}</span>
+                        <button onClick={() => toggleSelectFund(fund)} className="remove-chip">
+                          <CloseIcon width="14" height="14" />
+                        </button>
+                      </div>
+                    ))}
                   </div>
-                </th>
-                <th style={{width:'20%'}}>实时估值</th>
-                
-                <th 
-                  style={{width:'20%', cursor:'pointer', background: sortConfig.key === 'holdAmount' ? '#e2e8f0' : ''}}
-                  onClick={() => handleSort('holdAmount')}
-                >
-                  持有金额
-                </th>
-                <th 
-                  style={{width:'15%', cursor:'pointer', background: sortConfig.key === 'dayIncome' ? '#e2e8f0' : ''}}
-                  onClick={() => handleSort('dayIncome')}
-                >
-                  今日收益
-                </th>
-                
-                <th style={{width:'10%'}}>操作</th>
-              </tr>
-            </thead>
-            <tbody>
-              {sortedFunds.map((f) => {
-                const delta = Number(f.gszzl) || 0;
-                const share = f.share || 0;
-                const curPrice = parseFloat(f.gsz) || 0;
-                const yesterdayPrice = parseFloat(f.dwjz) || 0;
-                
-                const holdAmount = share * curPrice;
-                const dayIncome = share * (curPrice - yesterdayPrice);
-                
-                return (
-                  <tr key={f.code}>
-                    <td>
-                      <div style={{
-                        fontWeight:'bold', 
-                        marginBottom: 4,
-                        maxWidth: '180px', 
-                        whiteSpace: 'nowrap', 
-                        overflow: 'hidden', 
-                        textOverflow: 'ellipsis'
-                      }} title={f.name}>
-                        {f.name}
-                      </div>
-                      <div style={{fontSize:12, display:'flex', alignItems:'center', gap:8}}>
-                         <span style={{color:'var(--muted)'}}>{f.code}</span>
-                         <span style={{fontWeight:'bold', color: getColor(delta)}}>
-                            {delta > 0 ? '+' : ''}{f.gszzl}%
-                         </span>
-                      </div>
-                    </td>
-
-                    <td style={{fontSize:15, fontWeight:'bold', color: getColor(delta)}}>
-                      {f.gsz}
-                    </td>
-                    
-                    <td style={{fontWeight:'bold'}}>{share > 0 ? fmtMoney(holdAmount) : '-'}</td>
-                    <td style={{fontWeight:'bold', color: getColor(dayIncome)}}>
-                      {share > 0 ? (dayIncome > 0 ? '+' : '') + fmtMoney(dayIncome) : '-'}
-                    </td>
-
-                    <td>
-                      <div style={{display:'flex', gap:6, justifyContent:'flex-end'}}>
-                        <button 
-                          className="button" 
-                          style={{padding:'4px', height:'auto', color:'var(--accent)'}} 
-                          onClick={() => openEdit(f)}
-                          title="编辑持仓"
-                        >
-                          <EditIcon width="14" height="14" />
-                        </button>
-                        <button 
-                          className="button" 
-                          style={{padding:'4px', height:'auto', color:'#666'}} 
-                          onClick={() => removeFund(f.code)}
-                          title="删除"
-                        >
-                          <TrashIcon width="14" height="14" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      )}
-
-      {/* 排行榜弹窗 */}
-      {rankOpen && (
-        <div className="modal-overlay" onClick={() => setRankOpen(false)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()} style={{width: 650, maxWidth: '95vw', height:'85vh', display:'flex', flexDirection:'column'}}>
-            <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:12}}>
-              <div style={{fontWeight:'bold', fontSize:16}}>🔥 基金排行榜 (Top 200)</div>
-              <button className="icon-button" onClick={() => setRankOpen(false)}>×</button>
-            </div>
-            
-            <div style={{display:'flex', gap:8, marginBottom:12, overflowX:'auto', paddingBottom:4}}>
-              {[
-                {k:'all', n:'全部'}, 
-                {k:'gp', n:'股票型'}, 
-                {k:'hh', n:'混合型'}, 
-                {k:'zs', n:'指数型'}, 
-                {k:'zq', n:'债券型'}
-              ].map(cat => (
-                <button 
-                  key={cat.k}
-                  className="button" 
-                  style={{
-                    background: rankCategory===cat.k ? 'var(--accent)' : '#fff', 
-                    color: rankCategory===cat.k ? '#fff' : '#666',
-                    borderColor: rankCategory===cat.k ? 'var(--accent)' : 'var(--border)',
-                    fontSize: 12, padding: '4px 12px'
-                  }}
-                  onClick={() => fetchRankings(rankType, cat.k)}
-                >
-                  {cat.n}
-                </button>
-              ))}
-            </div>
-
-            <div style={{display:'flex', gap:10, marginBottom:12}}>
-              <div style={{display:'flex', gap:0, borderRadius:8, border:'1px solid var(--border)', overflow:'hidden'}}>
-                <button 
-                  style={{
-                    padding: '6px 16px', border:'none', cursor:'pointer',
-                    background: rankType==='up'?'var(--danger)':'#f8f9fa', 
-                    color: rankType==='up'?'#fff':'#666'
-                  }}
-                  onClick={() => fetchRankings('up', rankCategory)}
-                >
-                  涨幅榜
-                </button>
-                <button 
-                   style={{
-                    padding: '6px 16px', border:'none', cursor:'pointer',
-                    background: rankType==='down'?'var(--success)':'#f8f9fa', 
-                    color: rankType==='down'?'#fff':'#666'
-                  }}
-                  onClick={() => fetchRankings('down', rankCategory)}
-                >
-                  跌幅榜
-                </button>
-              </div>
-              <div style={{flex:1, position:'relative'}}>
-                <div style={{position:'absolute', left:8, top:8, color:'#999'}}><SearchIcon width="14" height="14"/></div>
-                <input 
-                  className="input" 
-                  style={{width:'100%', height:32, paddingLeft:28, fontSize:12}} 
-                  placeholder="在榜单中搜索..."
-                  value={rankSearch}
-                  onChange={(e) => setRankSearch(e.target.value)}
+                )}
+                <input
+                  className="input"
+                  placeholder="搜索基金名称或代码..."
+                  value={searchTerm}
+                  onChange={handleSearchInput}
+                  onFocus={() => setShowDropdown(true)}
                 />
+                {isSearching && <div className="search-spinner" />}
+              </div>
+              <button className="button" type="submit" disabled={loading}>
+                {loading ? '添加中…' : '添加'}
+              </button>
+            </form>
+
+            <AnimatePresence>
+              {showDropdown && (searchTerm.trim() || searchResults.length > 0) && (
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  className="search-dropdown glass"
+                >
+                  {searchResults.length > 0 ? (
+                    <div className="search-results">
+                      {searchResults.map((fund) => {
+                        const isSelected = selectedFunds.some(f => f.CODE === fund.CODE);
+                        const isAlreadyAdded = funds.some(f => f.code === fund.CODE);
+                        return (
+                          <div
+                            key={fund.CODE}
+                            className={`search-item ${isSelected ? 'selected' : ''} ${isAlreadyAdded ? 'added' : ''}`}
+                            onClick={() => {
+                              if (isAlreadyAdded) return;
+                              toggleSelectFund(fund);
+                            }}
+                          >
+                            <div className="fund-info">
+                              <span className="fund-name">{fund.NAME}</span>
+                              <span className="fund-code muted">#{fund.CODE} | {fund.TYPE}</span>
+                            </div>
+                            {isAlreadyAdded ? (
+                              <span className="added-label">已添加</span>
+                            ) : (
+                              <div className="checkbox">
+                                {isSelected && <div className="checked-mark" />}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : searchTerm.trim() && !isSearching ? (
+                    <div className="no-results muted">未找到相关基金</div>
+                  ) : null}
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+
+          
+
+          {error && <div className="muted" style={{ marginTop: 8, color: 'var(--danger)' }}>{error}</div>}
+        </div>
+
+        <div className="col-12">
+          {funds.length > 0 && (
+            <div className="filter-bar" style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
+              {favorites.size > 0 ? (
+                <div className="tabs">
+                  <button
+                    className={`tab ${currentTab === 'all' ? 'active' : ''}`}
+                    onClick={() => setCurrentTab('all')}
+                  >
+                    全部 ({funds.length})
+                  </button>
+                  <button
+                    className={`tab ${currentTab === 'fav' ? 'active' : ''}`}
+                    onClick={() => setCurrentTab('fav')}
+                  >
+                    自选 ({favorites.size})
+                  </button>
+                </div>
+              ) : <div />}
+
+              <div className="sort-group" style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div className="view-toggle" style={{ display: 'flex', background: 'rgba(255,255,255,0.05)', borderRadius: '10px', padding: '2px' }}>
+                  <button
+                    className={`icon-button ${viewMode === 'card' ? 'active' : ''}`}
+                    onClick={() => { setViewMode('card'); localStorage.setItem('viewMode', 'card'); }}
+                    style={{ border: 'none', width: '32px', height: '32px', background: viewMode === 'card' ? 'var(--primary)' : 'transparent', color: viewMode === 'card' ? '#05263b' : 'var(--muted)' }}
+                    title="卡片视图"
+                  >
+                    <GridIcon width="16" height="16" />
+                  </button>
+                  <button
+                      className={`icon-button ${viewMode === 'list' ? 'active' : ''}`}
+                      onClick={() => { setViewMode('list'); localStorage.setItem('viewMode', 'list'); }}
+                      style={{ border: 'none', width: '32px', height: '32px', background: viewMode === 'list' ? 'var(--primary)' : 'transparent', color: viewMode === 'list' ? '#05263b' : 'var(--muted)' }}
+                      title="表格视图"
+                    >
+                      <ListIcon width="16" height="16" />
+                    </button>
+                </div>
+
+                <div className="divider" style={{ width: '1px', height: '20px', background: 'var(--border)' }} />
+
+                <div className="sort-items" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span className="muted" style={{ fontSize: '12px', display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <SortIcon width="14" height="14" />
+                    排序
+                  </span>
+                  <div className="chips">
+                    {[
+                      { id: 'default', label: '默认' },
+                      { id: 'yield', label: '涨跌幅' },
+                      { id: 'name', label: '名称' },
+                      { id: 'code', label: '代码' }
+                    ].map((s) => (
+                      <button
+                        key={s.id}
+                        className={`chip ${sortBy === s.id ? 'active' : ''}`}
+                        onClick={() => setSortBy(s.id)}
+                        style={{ height: '28px', fontSize: '12px', padding: '0 10px' }}
+                      >
+                        {s.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
               </div>
             </div>
+          )}
 
-            <div style={{fontSize:11, color:'#999', marginBottom:8, textAlign:'center'}}>
-              注：排行榜展示前 200 名，基于上一交易日净值涨跌
-            </div>
-            
-            <div style={{flex:1, overflowY:'auto', border:'1px solid var(--border)', borderRadius:8}}>
-              {rankLoading ? (
-                <div style={{padding:40, textAlign:'center', color:'#999'}}>数据加载中...</div>
-              ) : filteredRankList.length === 0 ? (
-                <div style={{padding:40, textAlign:'center', color:'#999'}}>未找到相关基金</div>
-              ) : (
-                <table className="fund-table" style={{fontSize:12}}>
-                  <thead>
-                    <tr>
-                      <th style={{position:'sticky', top:0, zIndex:10, background:'#f0f3f5'}}>排名</th>
-                      <th style={{position:'sticky', top:0, zIndex:10, background:'#f0f3f5'}}>基金名称</th>
-                      <th style={{position:'sticky', top:0, zIndex:10, background:'#f0f3f5'}}>净值涨跌</th>
-                      <th style={{position:'sticky', top:0, zIndex:10, background:'#f0f3f5'}}>操作</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredRankList.map((item, idx) => {
-                      const isAdded = funds.some(f => f.code === item.code);
-                      return (
-                        <tr key={item.code}>
-                          <td style={{textAlign:'center', width:50}}>
-                            <span style={{
-                              color: idx < 3 ? (rankType==='up'?'red':'green') : '#666', 
-                              fontWeight:'bold'
-                            }}>
-                              {idx + 1}
-                            </span>
-                          </td>
-                          <td>
-                            <div style={{
-                              fontWeight:'bold',
-                              maxWidth: '180px', 
-                              whiteSpace: 'nowrap', 
-                              overflow: 'hidden', 
-                              textOverflow: 'ellipsis'
-                            }} title={item.name}>{item.name}</div>
-                            <div style={{color:'#999', fontSize:10}}>{item.code}</div>
-                          </td>
-                          <td style={{color: rankType==='up'?'var(--danger)':'var(--success)', fontWeight:'bold'}}>
-                            {item.gszzl > 0 ? '+' : ''}{item.gszzl}%
-                          </td>
-                          <td style={{textAlign:'center'}}>
-                            {isAdded ? <span style={{color:'#ccc'}}>已加</span> : (
-                              <button className="button" style={{padding:'2px 8px', fontSize:11}} onClick={() => addFund(null, item.code)}>+</button>
+          {funds.length === 0 ? (
+            <div className="glass card empty">尚未添加基金</div>
+          ) : (
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={viewMode}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.2 }}
+                className={viewMode === 'card' ? 'grid' : 'table-container glass'}
+              >
+                <div className={viewMode === 'card' ? 'grid col-12' : ''} style={viewMode === 'card' ? { gridColumn: 'span 12', gap: 16 } : {}}>
+                  <AnimatePresence mode="popLayout">
+                    {funds
+                      .filter(f => currentTab === 'all' || favorites.has(f.code))
+                      .sort((a, b) => {
+                        if (sortBy === 'yield') {
+                          const valA = typeof a.estGszzl === 'number' ? a.estGszzl : (Number(a.gszzl) || 0);
+                          const valB = typeof b.estGszzl === 'number' ? b.estGszzl : (Number(b.gszzl) || 0);
+                          return valB - valA;
+                        }
+                        if (sortBy === 'name') return a.name.localeCompare(b.name, 'zh-CN');
+                        if (sortBy === 'code') return a.code.localeCompare(b.code);
+                        return 0; // default order is the order in the array
+                      })
+                      .map((f) => (
+                      <motion.div
+                        layout="position"
+                        key={f.code}
+                        className={viewMode === 'card' ? 'col-6' : 'table-row-wrapper'}
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.95 }}
+                        transition={{ duration: 0.2 }}
+                      >
+                      <div className={viewMode === 'card' ? 'glass card' : 'table-row'}>
+                        {viewMode === 'list' ? (
+                          <>
+                            <div className="table-cell name-cell">
+                              <button
+                                className={`icon-button fav-button ${favorites.has(f.code) ? 'active' : ''}`}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  toggleFavorite(f.code);
+                                }}
+                                title={favorites.has(f.code) ? "取消自选" : "添加自选"}
+                              >
+                                <StarIcon width="18" height="18" filled={favorites.has(f.code)} />
+                              </button>
+                              <div className="title-text">
+                                <span className="name-text">{f.name}</span>
+                                <span className="muted code-text">#{f.code}</span>
+                              </div>
+                            </div>
+                            <div className="table-cell text-right value-cell">
+                              <span style={{ fontWeight: 700 }}>{f.estPricedCoverage > 0.05 ? f.estGsz.toFixed(4) : (f.gsz ?? '—')}</span>
+                            </div>
+                            <div className="table-cell text-right change-cell">
+                              <span className={f.estPricedCoverage > 0.05 ? (f.estGszzl > 0 ? 'up' : f.estGszzl < 0 ? 'down' : '') : (Number(f.gszzl) > 0 ? 'up' : Number(f.gszzl) < 0 ? 'down' : '')} style={{ fontWeight: 700 }}>
+                                {f.estPricedCoverage > 0.05 ? `${f.estGszzl > 0 ? '+' : ''}${f.estGszzl.toFixed(2)}%` : (typeof f.gszzl === 'number' ? `${f.gszzl > 0 ? '+' : ''}${f.gszzl.toFixed(2)}%` : f.gszzl ?? '—')}
+                              </span>
+                            </div>
+                            <div className="table-cell text-right time-cell">
+                              <span className="muted" style={{ fontSize: '12px' }}>{f.gztime || f.time || '-'}</span>
+                            </div>
+                            <div className="table-cell text-center action-cell">
+                              <button
+                                className="icon-button danger"
+                                onClick={() => removeFund(f.code)}
+                                title="删除"
+                                style={{ width: '28px', height: '28px' }}
+                              >
+                                <TrashIcon width="14" height="14" />
+                              </button>
+                            </div>
+                          </>
+                        ) : (
+                          <>
+                          <div className="row" style={{ marginBottom: 10 }}>
+                            <div className="title">
+                              <button
+                                className={`icon-button fav-button ${favorites.has(f.code) ? 'active' : ''}`}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  toggleFavorite(f.code);
+                                }}
+                                title={favorites.has(f.code) ? "取消自选" : "添加自选"}
+                              >
+                                <StarIcon width="18" height="18" filled={favorites.has(f.code)} />
+                              </button>
+                              <div className="title-text">
+                                <span>{f.name}</span>
+                                <span className="muted">#{f.code}</span>
+                              </div>
+                            </div>
+
+                            <div className="actions">
+                              <div className="badge-v">
+                                <span>估值时间</span>
+                                <strong>{f.gztime || f.time || '-'}</strong>
+                              </div>
+                              <button
+                                className="icon-button danger"
+                                onClick={() => removeFund(f.code)}
+                                title="删除"
+                              >
+                                <TrashIcon width="18" height="18" />
+                              </button>
+                            </div>
+                          </div>
+
+                          <div className="row" style={{ marginBottom: 12 }}>
+                            <Stat label="单位净值" value={f.dwjz ?? '—'} />
+                            <Stat label="估值净值" value={f.estPricedCoverage > 0.05 ? f.estGsz.toFixed(4) : (f.gsz ?? '—')} />
+                            <Stat
+                              label="涨跌幅"
+                              value={f.estPricedCoverage > 0.05 ? `${f.estGszzl > 0 ? '+' : ''}${f.estGszzl.toFixed(2)}%` : (typeof f.gszzl === 'number' ? `${f.gszzl > 0 ? '+' : ''}${f.gszzl.toFixed(2)}%` : f.gszzl ?? '—')}
+                              delta={f.estPricedCoverage > 0.05 ? f.estGszzl : (Number(f.gszzl) || 0)}
+                            />
+                          </div>
+                          {f.estPricedCoverage > 0.05 && (
+                            <div style={{ fontSize: '10px', color: 'var(--muted)', marginTop: -8, marginBottom: 10, textAlign: 'right' }}>
+                              基于 {Math.round(f.estPricedCoverage * 100)}% 持仓估算
+                            </div>
+                          )}
+                          <div
+                            style={{ marginBottom: 8, cursor: 'pointer', userSelect: 'none' }}
+                            className="title"
+                            // 【修改处5】点击触发展开
+                            onClick={() => toggleExpand(f.code)}
+                          >
+                            <div className="row" style={{ width: '100%', flex: 1 }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                <span>前10重仓股票</span>
+                                <ChevronIcon
+                                  width="16"
+                                  height="16"
+                                  className="muted"
+                                  style={{
+                                    // 【修改处6】图标旋转逻辑：在集合中(展开)则朝下(0deg)，不在集合中(收起)则朝右(-90deg)
+                                    transform: expandedCodes.has(f.code) ? 'rotate(0deg)' : 'rotate(-90deg)',
+                                    transition: 'transform 0.2s ease'
+                                  }}
+                                />
+                              </div>
+                              <span className="muted">涨跌幅 / 占比</span>
+                            </div>
+                          </div>
+                          <AnimatePresence>
+                            {/* 【修改处7】只有在 expandedCodes 集合中才显示 */}
+                            {expandedCodes.has(f.code) && (
+                              <motion.div
+                                initial={{ height: 0, opacity: 0 }}
+                                animate={{ height: 'auto', opacity: 1 }}
+                                exit={{ height: 0, opacity: 0 }}
+                                transition={{ duration: 0.3, ease: 'easeInOut' }}
+                                style={{ overflow: 'hidden' }}
+                              >
+                                {Array.isArray(f.holdings) && f.holdings.length ? (
+                                  <div className="list">
+                                    {f.holdings.map((h, idx) => (
+                                      <div className="item" key={idx}>
+                                        <span className="name">{h.name}</span>
+                                        <div className="values">
+                                          {typeof h.change === 'number' && (
+                                            <span className={`badge ${h.change > 0 ? 'up' : h.change < 0 ? 'down' : ''}`} style={{ marginRight: 8 }}>
+                                              {h.change > 0 ? '+' : ''}{h.change.toFixed(2)}%
+                                            </span>
+                                          )}
+                                          <span className="weight">{h.weight}</span>
+                                        </div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                ) : (
+                                  <div className="muted" style={{ padding: '8px 0' }}>暂无重仓数据</div>
+                                )}
+                              </motion.div>
                             )}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              )}
-            </div>
-          </div>
+                          </AnimatePresence>
+                        </>
+                      )}
+                      </div>
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
+                </div>
+              </motion.div>
+            </AnimatePresence>
+          )}
         </div>
-      )}
+      </div>
 
-      {editingFund && (
-        <div className="modal-overlay" onClick={() => setEditingFund(null)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()} style={{width: 320}}>
-            <div style={{fontWeight:'bold', marginBottom:16}}>
-              编辑持仓 - {editingFund.name}
-            </div>
-            
-            <div style={{marginBottom:12}}>
-              <label style={{display:'block', fontSize:12, marginBottom:4, color:'#666'}}>持有份额 (份)</label>
-              <input 
-                className="input" 
-                style={{width:'100%'}} 
-                type="number" 
-                value={editShare} 
-                onChange={e => setEditShare(e.target.value)}
-                placeholder="0"
-              />
-            </div>
-            
-            <div style={{marginBottom:20}}>
-              <label style={{display:'block', fontSize:12, marginBottom:4, color:'#666'}}>持仓成本 (单价元)</label>
-              <input 
-                className="input" 
-                style={{width:'100%'}} 
-                type="number" 
-                value={editCost} 
-                onChange={e => setEditCost(e.target.value)}
-                placeholder="例如 1.2500"
-              />
-            </div>
-
-            <div style={{display:'flex', justifyContent:'flex-end', gap:10}}>
-              <button className="button" onClick={() => setEditingFund(null)}>取消</button>
-              <button className="button" style={{background:'var(--accent)', color:'#fff', borderColor:'transparent'}} onClick={saveEdit}>保存</button>
-            </div>
-          </div>
+      <div className="footer">
+        <p>数据源：实时估值与重仓直连东方财富，仅供个人学习及参考使用。数据可能存在延迟，不作为任何投资建议
+        </p>
+        <p>注：估算数据与真实结算数据会有1%左右误差</p>
+        <div style={{ marginTop: 12, opacity: 0.8 }}>
+          
         </div>
-      )}
+      </div>
+
+      <AnimatePresence>
+        {feedbackOpen && (
+          <FeedbackModal
+            key={feedbackNonce}
+            onClose={() => setFeedbackOpen(false)}
+          />
+        )}
+      </AnimatePresence>
+      <AnimatePresence>
+        {addResultOpen && (
+          <AddResultModal
+            failures={addFailures}
+            onClose={() => setAddResultOpen(false)}
+          />
+        )}
+      </AnimatePresence>
 
       {settingsOpen && (
-        <div className="modal-overlay" onClick={() => setSettingsOpen(false)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <div style={{fontWeight:'bold', marginBottom:16}}>系统设置</div>
-            <div style={{marginBottom:12, fontSize:12}}>刷新频率 (秒)</div>
-            <div style={{display:'flex', gap:8, marginBottom:16}}>
-              {[10, 30, 60].map((s) => (
-                <button
-                  key={s}
-                  className="button"
-                  style={{borderColor: tempSeconds===s?'var(--accent)':'var(--border)', color: tempSeconds===s?'var(--accent)':'var(--text)'}}
-                  onClick={() => setTempSeconds(s)}
-                >
-                  {s}s
-                </button>
-              ))}
+        <div className="modal-overlay" role="dialog" aria-modal="true" aria-label="设置" onClick={() => setSettingsOpen(false)}>
+          <div className="glass card modal" onClick={(e) => e.stopPropagation()}>
+            <div className="title" style={{ marginBottom: 12 }}>
+              <SettingsIcon width="20" height="20" />
+              <span>设置</span>
+              <span className="muted">配置刷新频率</span>
+            </div>
+
+            <div className="form-group" style={{ marginBottom: 16 }}>
+              <div className="muted" style={{ marginBottom: 8, fontSize: '0.8rem' }}>刷新频率</div>
+              <div className="chips" style={{ marginBottom: 12 }}>
+                {[10, 30, 60, 120, 300].map((s) => (
+                  <button
+                    key={s}
+                    type="button"
+                    className={`chip ${tempSeconds === s ? 'active' : ''}`}
+                    onClick={() => setTempSeconds(s)}
+                    aria-pressed={tempSeconds === s}
+                  >
+                    {s} 秒
+                  </button>
+                ))}
+              </div>
               <input
-                 className="input"
-                 type="number"
-                 value={tempSeconds}
-                 onChange={(e) => setTempSeconds(Number(e.target.value))}
-                 style={{width:60}}
+                className="input"
+                type="number"
+                min="5"
+                step="5"
+                value={tempSeconds}
+                onChange={(e) => setTempSeconds(Number(e.target.value))}
+                placeholder="自定义秒数"
               />
             </div>
-            <div style={{textAlign:'right'}}>
-              <button className="button" style={{background:'var(--accent)', color:'#fff', borderColor:'transparent'}} onClick={saveSettings}>
-                保存设置
-              </button>
+
+            <div className="row" style={{ justifyContent: 'flex-end', marginTop: 24 }}>
+              <button className="button" onClick={saveSettings}>保存并关闭</button>
             </div>
           </div>
         </div>
