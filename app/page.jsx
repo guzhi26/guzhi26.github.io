@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useForm, ValidationError } from '@formspree/react';
 import Announcement from "./components/Announcement";
@@ -24,6 +24,15 @@ function TrashIcon(props) {
   );
 }
 
+function EditIcon(props) {
+  return (
+    <svg {...props} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none">
+      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+    </svg>
+  );
+}
+
 function SettingsIcon(props) {
   return (
     <svg {...props} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none">
@@ -40,6 +49,15 @@ function RefreshIcon(props) {
       <path d="M16 5h3v3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
       <path d="M20 12a8 8 0 0 1-12.5 6.9" stroke="currentColor" strokeWidth="2" />
       <path d="M8 19H5v-3" stroke="currentColor" strokeWidth="2" />
+    </svg>
+  );
+}
+
+function TrophyIcon(props) {
+  return (
+    <svg {...props} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none">
+      <path d="M8 21h8M12 17v4M7 4h10c0 5-1 9-5 9s-5-4-5-9z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+      <path d="M17 4v5c0 3 2 4 4 4s3-2 3-5V4M7 4V9c0 3-2 4-4 4S0 11 0 8V4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
     </svg>
   );
 }
@@ -197,6 +215,225 @@ function FeedbackModal({ onClose }) {
   );
 }
 
+function LeaderboardModal({ onClose, onAdd }) {
+  const [list, setList] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    // 修复点1：将 pn=20 改为 pn=100，获取更多数据以确保覆盖真正的头部基金
+    // 修复点2：v参数使用时间戳确保不缓存
+    const url = `https://fund.eastmoney.com/data/rankhandler.aspx?op=ph&dt=kf&ft=all&rs=&gs=0&sc=zzf&st=desc&pi=1&pn=100&dx=1&v=${Date.now()}`;
+
+    const script = document.createElement('script');
+    script.src = url;
+    script.async = true;
+    
+    // 定义回调处理
+    script.onload = () => {
+      if (window.rankData && window.rankData.datas) {
+        try {
+          const rawData = window.rankData.datas;
+          
+          // 修复点3：数据解析与清洗
+          const parsed = rawData.map(str => {
+            const parts = str.split(',');
+            // parts[6] 是日增长率
+            const yieldVal = parseFloat(parts[6]);
+            return {
+              code: parts[0],
+              name: parts[1],
+              date: parts[3],
+              yield: parts[6], // 保留原始字符串用于显示
+              yieldNum: isNaN(yieldVal) ? -9999 : yieldVal // 用于排序的数字
+            };
+          });
+
+          // 修复点4：前端强制按涨幅降序排序 (解决乱序问题)
+          parsed.sort((a, b) => b.yieldNum - a.yieldNum);
+
+          // 修复点5：只取前20名展示
+          setList(parsed.slice(0, 20));
+          setLoading(false);
+        } catch (e) {
+          console.error(e);
+          setError('数据解析异常');
+          setLoading(false);
+        }
+      } else {
+        setError('未获取到排名数据');
+        setLoading(false);
+      }
+      // 清理全局变量
+      window.rankData = undefined;
+      if (document.body.contains(script)) document.body.removeChild(script);
+    };
+
+    script.onerror = () => {
+      setError('加载排名数据失败');
+      setLoading(false);
+      if (document.body.contains(script)) document.body.removeChild(script);
+    };
+
+    document.body.appendChild(script);
+
+    return () => {
+      if (document.body.contains(script)) document.body.removeChild(script);
+    };
+  }, []);
+
+  return (
+    <motion.div
+      className="modal-overlay"
+      onClick={onClose}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+    >
+      <motion.div
+        className="glass card modal"
+        onClick={(e) => e.stopPropagation()}
+        initial={{ opacity: 0, scale: 0.95, y: 20 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.95, y: 20 }}
+      >
+        <div className="title" style={{ marginBottom: 16, justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <TrophyIcon width="20" height="20" style={{ color: '#f59e0b' }} />
+            <span>基金排行榜</span>
+            <span className="badge">日涨幅 Top 20</span>
+          </div>
+          <button className="icon-button" onClick={onClose} style={{ border: 'none', background: 'transparent' }}>
+            <CloseIcon width="20" height="20" />
+          </button>
+        </div>
+
+        {loading ? (
+          <div style={{ padding: '40px 0', display: 'flex', justifyContent: 'center' }}>
+            <div className="search-spinner" style={{ position: 'relative', width: 24, height: 24, borderColor: 'var(--muted)', borderTopColor: 'var(--primary)' }} />
+          </div>
+        ) : error ? (
+          <div className="error-text" style={{ textAlign: 'center', padding: '20px' }}>{error}</div>
+        ) : (
+          <div className="list" style={{ gridTemplateColumns: '1fr', maxHeight: '60vh', overflowY: 'auto', gap: 0 }}>
+            {list.map((item, idx) => (
+              <div 
+                key={item.code} 
+                className="item" 
+                style={{ 
+                  borderRadius: 0, 
+                  border: 'none', 
+                  borderBottom: '1px solid var(--border)', 
+                  padding: '12px 4px',
+                  background: 'transparent',
+                  boxShadow: 'none'
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1, minWidth: 0 }}>
+                  <div style={{ 
+                    width: 24, 
+                    height: 24, 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'center', 
+                    background: idx < 3 ? 'var(--primary)' : 'var(--border)', 
+                    color: idx < 3 ? '#fff' : 'var(--muted)', 
+                    borderRadius: '6px', 
+                    fontSize: '12px',
+                    fontWeight: 700,
+                    flexShrink: 0
+                  }}>
+                    {idx + 1}
+                  </div>
+                  <div style={{ overflow: 'hidden', display: 'flex', flexDirection: 'column', gap: 2 }}>
+                    <div className="name" style={{ fontSize: 14, fontWeight: 600 }}>{item.name}</div>
+                    <div className="muted" style={{ fontSize: 11 }}>{item.code} | {item.date}</div>
+                  </div>
+                </div>
+                
+                <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                  {/* 使用 yieldNum 判断颜色，但在界面上显示原始 yield 字符串 */}
+                  <span className={`weight ${item.yieldNum > 0 ? 'up' : item.yieldNum < 0 ? 'down' : ''}`} style={{ fontSize: 14, fontWeight: 700 }}>
+                     {item.yieldNum > 0 ? '+' : ''}{item.yield}%
+                  </span>
+                  <button 
+                    className="icon-button" 
+                    style={{ width: 32, height: 32 }} 
+                    onClick={() => onAdd(item.code)}
+                    title="添加"
+                  >
+                    <PlusIcon width="16" height="16" />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </motion.div>
+    </motion.div>
+  );
+}
+
+function EditAmountModal({ fund, onClose, onSave }) {
+  const [amount, setAmount] = useState(fund.amount || '');
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    onSave(fund.code, amount);
+  };
+
+  return (
+    <motion.div
+      className="modal-overlay"
+      onClick={onClose}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+    >
+      <motion.div
+        className="glass card modal"
+        onClick={(e) => e.stopPropagation()}
+        initial={{ opacity: 0, scale: 0.95, y: 20 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.95, y: 20 }}
+      >
+        <div className="title" style={{ marginBottom: 16 }}>
+          <EditIcon width="20" height="20" />
+          <span>设置持有金额</span>
+        </div>
+        
+        <div className="muted" style={{ marginBottom: 16, fontSize: '14px' }}>
+          {fund.name} (<span style={{ fontFamily: 'monospace' }}>{fund.code}</span>)
+        </div>
+
+        <form onSubmit={handleSubmit}>
+          <div className="form-group" style={{ marginBottom: 20 }}>
+            <label className="muted" style={{ display: 'block', marginBottom: 8, fontSize: '12px' }}>
+              持有金额 (元)
+            </label>
+            <input
+              autoFocus
+              className="input"
+              type="number"
+              min="0"
+              step="0.01"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              placeholder="0.00"
+              style={{ width: '100%' }}
+            />
+          </div>
+
+          <div className="row" style={{ justifyContent: 'flex-end', gap: 12 }}>
+            <button type="button" className="button" style={{ background: 'transparent', color: 'var(--muted)', boxShadow: 'none' }} onClick={onClose}>取消</button>
+            <button type="submit" className="button">保存</button>
+          </div>
+        </form>
+      </motion.div>
+    </motion.div>
+  );
+}
+
 function AddResultModal({ failures, onClose }) {
   return (
     <motion.div
@@ -261,19 +498,24 @@ export default function HomePage() {
   // 全局刷新状态
   const [refreshing, setRefreshing] = useState(false);
 
-  // 【修改处1】收起/展开状态：改为记录“已展开”的代码
-  // 默认为空 Set，即默认所有都是收起状态
+  // 展开的代码 (默认折叠)
   const [expandedCodes, setExpandedCodes] = useState(new Set());
+
+  // 编辑金额状态
+  const [editingFund, setEditingFund] = useState(null);
+
+  // 排行榜弹窗状态
+  const [leaderboardOpen, setLeaderboardOpen] = useState(false);
 
   // 自选状态
   const [favorites, setFavorites] = useState(new Set());
   const [currentTab, setCurrentTab] = useState('all');
 
-  // 排序状态
-  const [sortBy, setSortBy] = useState('yield'); // default, name, yield, code
+  // 排序状态 (默认涨跌幅)
+  const [sortBy, setSortBy] = useState('yield'); 
 
-  // 视图模式
-  const [viewMode, setViewMode] = useState('list'); // card, list
+  // 视图模式 (默认列表)
+  const [viewMode, setViewMode] = useState('list');
 
   // 反馈弹窗状态
   const [feedbackOpen, setFeedbackOpen] = useState(false);
@@ -289,6 +531,21 @@ export default function HomePage() {
   const [showDropdown, setShowDropdown] = useState(false);
   const [addResultOpen, setAddResultOpen] = useState(false);
   const [addFailures, setAddFailures] = useState([]);
+
+  // 计算总资产和总收益
+  const summary = useMemo(() => {
+    let totalAmount = 0;
+    let totalProfit = 0;
+    funds.forEach(f => {
+      const amt = parseFloat(f.amount) || 0;
+      if (amt > 0) {
+        totalAmount += amt;
+        const rate = f.estPricedCoverage > 0.05 ? f.estGszzl : (Number(f.gszzl) || 0);
+        totalProfit += amt * rate / 100;
+      }
+    });
+    return { totalAmount, totalProfit };
+  }, [funds]);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -314,7 +571,6 @@ export default function HomePage() {
     });
   };
 
-  // 【修改处2】切换展开/收起函数
   const toggleExpand = (code) => {
     setExpandedCodes(prev => {
       const next = new Set(prev);
@@ -323,13 +579,11 @@ export default function HomePage() {
       } else {
         next.add(code);
       }
-      // 同步到本地存储，注意 key 改为了 expandedCodes
       localStorage.setItem('expandedCodes', JSON.stringify(Array.from(next)));
       return next;
     });
   };
 
-  // 按 code 去重，保留第一次出现的项，避免列表重复
   const dedupeByCode = (list) => {
     const seen = new Set();
     return list.filter((f) => {
@@ -355,17 +609,14 @@ export default function HomePage() {
         setRefreshMs(savedMs);
         setTempSeconds(Math.round(savedMs / 1000));
       }
-      // 【修改处3】加载展开状态
       const savedExpanded = JSON.parse(localStorage.getItem('expandedCodes') || '[]');
       if (Array.isArray(savedExpanded)) {
         setExpandedCodes(new Set(savedExpanded));
       }
-      // 加载自选状态
       const savedFavorites = JSON.parse(localStorage.getItem('favorites') || '[]');
       if (Array.isArray(savedFavorites)) {
         setFavorites(new Set(savedFavorites));
       }
-      // 加载视图模式
       const savedViewMode = localStorage.getItem('viewMode');
       if (savedViewMode === 'card' || savedViewMode === 'list') {
         setViewMode(savedViewMode);
@@ -384,7 +635,6 @@ export default function HomePage() {
     };
   }, [funds, refreshMs]);
 
-  // --- 辅助：JSONP 数据抓取逻辑 ---
   const loadScript = (url) => {
     return new Promise((resolve, reject) => {
       const script = document.createElement('script');
@@ -404,7 +654,6 @@ export default function HomePage() {
 
   const fetchFundData = async (c) => {
     return new Promise(async (resolve, reject) => {
-      // 腾讯接口识别逻辑优化
       const getTencentPrefix = (code) => {
         if (code.startsWith('6') || code.startsWith('9')) return 'sh';
         if (code.startsWith('0') || code.startsWith('3')) return 'sz';
@@ -413,18 +662,12 @@ export default function HomePage() {
       };
 
       const gzUrl = `https://fundgz.1234567.com.cn/js/${c}.js?rt=${Date.now()}`;
-
-      // 使用更安全的方式处理全局回调，避免并发覆盖
-      const currentCallback = `jsonpgz_${c}_${Math.random().toString(36).slice(2, 7)}`;
-
-      // 动态拦截并处理 jsonpgz 回调
       const scriptGz = document.createElement('script');
-      // 东方财富接口固定调用 jsonpgz，我们通过修改全局变量临时捕获它
       scriptGz.src = gzUrl;
 
       const originalJsonpgz = window.jsonpgz;
       window.jsonpgz = (json) => {
-        window.jsonpgz = originalJsonpgz; // 立即恢复
+        window.jsonpgz = originalJsonpgz;
         if (!json || typeof json !== 'object') {
           reject(new Error('未获取到基金估值数据'));
           return;
@@ -439,7 +682,6 @@ export default function HomePage() {
           gszzl: Number.isFinite(gszzlNum) ? gszzlNum : json.gszzl
         };
 
-        // 获取重仓股票列表
         const holdingsUrl = `https://fundf10.eastmoney.com/FundArchivesDatas.aspx?type=jjcc&code=${c}&topline=10&year=&month=&rt=${Date.now()}`;
         loadScript(holdingsUrl).then(async () => {
           let holdings = [];
@@ -475,7 +717,6 @@ export default function HomePage() {
                     const dataStr = window[varName];
                     if (dataStr) {
                       const parts = dataStr.split('~');
-                      // parts[5] 是涨跌幅
                       if (parts.length > 5) {
                         h.change = parseFloat(parts[5]);
                       }
@@ -506,7 +747,6 @@ export default function HomePage() {
       };
 
       document.body.appendChild(scriptGz);
-      // 加载完立即移除脚本
       setTimeout(() => {
         if (document.body.contains(scriptGz)) document.body.removeChild(scriptGz);
       }, 5000);
@@ -519,7 +759,6 @@ export default function HomePage() {
       return;
     }
     setIsSearching(true);
-    // 使用 JSONP 方式获取数据，添加 callback 参数
     const callbackName = `SuggestData_${Date.now()}`;
     const url = `https://fundsuggest.eastmoney.com/FundSearch/api/FundSearchAPI.ashx?m=1&key=${encodeURIComponent(val)}&callback=${callbackName}&_=${Date.now()}`;
     
@@ -527,7 +766,6 @@ export default function HomePage() {
       await new Promise((resolve, reject) => {
         window[callbackName] = (data) => {
           if (data && data.Datas) {
-            // 过滤出基金类型的数据 (CATEGORY 为 700 是公募基金)
             const fundsOnly = data.Datas.filter(d => 
               d.CATEGORY === 700 || 
               d.CATEGORY === "700" || 
@@ -576,37 +814,116 @@ export default function HomePage() {
     });
   };
 
-  const batchAddFunds = async () => {
-    if (selectedFunds.length === 0) return;
+  const executeAddFunds = async (codes) => {
+    if (!codes.length) return;
     setLoading(true);
     setError('');
     
     try {
       const newFunds = [];
-      for (const f of selectedFunds) {
-        if (funds.some(existing => existing.code === f.CODE)) continue;
+      const failures = [];
+      
+      for (const c of codes) {
+        // 如果已存在则保留金额并更新
+        const existing = funds.find(f => f.code === c);
+        
         try {
-          const data = await fetchFundData(f.CODE);
+          const data = await fetchFundData(c);
+          if (existing?.amount) {
+            data.amount = existing.amount;
+          }
           newFunds.push(data);
         } catch (e) {
-          console.error(`添加基金 ${f.CODE} 失败`, e);
+          console.error(`添加基金 ${c} 失败`, e);
+          failures.push({ code: c });
         }
       }
       
       if (newFunds.length > 0) {
-        const updated = dedupeByCode([...newFunds, ...funds]);
-        setFunds(updated);
-        localStorage.setItem('funds', JSON.stringify(updated));
+        // 使用新获取的数据覆盖或添加到列表中
+        const updated = [...newFunds];
+        // 保留原列表中没被更新的
+        funds.forEach(f => {
+          if (!updated.some(u => u.code === f.code)) {
+            updated.push(f);
+          }
+        });
+        const deduped = dedupeByCode(updated);
+        setFunds(deduped);
+        localStorage.setItem('funds', JSON.stringify(deduped));
       }
       
-      setSelectedFunds([]);
-      setSearchTerm('');
-      setSearchResults([]);
+      if (failures.length > 0) {
+        setAddFailures(failures);
+        setAddResultOpen(true);
+      }
     } catch (e) {
       setError('批量添加失败');
     } finally {
       setLoading(false);
     }
+  };
+
+  const addFund = async (e) => {
+    e?.preventDefault?.();
+    setError('');
+    const manualTokens = String(searchTerm || '')
+      .split(/[^0-9A-Za-z]+/)
+      .map(t => t.trim())
+      .filter(t => t.length > 0);
+    const selectedCodes = Array.from(new Set([
+      ...selectedFunds.map(f => f.CODE),
+      ...manualTokens.filter(t => /^\d{6}$/.test(t))
+    ]));
+    
+    if (selectedCodes.length === 0) {
+      setError('请输入或选择基金代码');
+      return;
+    }
+    
+    await executeAddFunds(selectedCodes);
+    setSearchTerm('');
+    setSelectedFunds([]);
+    setShowDropdown(false);
+  };
+
+  const handleAddFromLeaderboard = (code) => {
+    executeAddFunds([code]);
+  };
+
+  const handleSaveAmount = (code, amount) => {
+    const next = funds.map(f => {
+      if (f.code === code) {
+        return { ...f, amount: amount };
+      }
+      return f;
+    });
+    setFunds(next);
+    localStorage.setItem('funds', JSON.stringify(next));
+    setEditingFund(null);
+  };
+
+  const removeFund = (removeCode) => {
+    const next = funds.filter((f) => f.code !== removeCode);
+    setFunds(next);
+    localStorage.setItem('funds', JSON.stringify(next));
+
+    setExpandedCodes(prev => {
+      if (!prev.has(removeCode)) return prev;
+      const nextSet = new Set(prev);
+      nextSet.delete(removeCode);
+      localStorage.setItem('expandedCodes', JSON.stringify(Array.from(nextSet)));
+      return nextSet;
+    });
+
+    setFavorites(prev => {
+      if (!prev.has(removeCode)) return prev;
+      const nextSet = new Set(prev);
+      nextSet.delete(removeCode);
+      localStorage.setItem('favorites', JSON.stringify(Array.from(nextSet)));
+      if (nextSet.size === 0) setCurrentTab('all');
+      return nextSet;
+    });
   };
 
   const refreshAll = async (codes) => {
@@ -619,6 +936,11 @@ export default function HomePage() {
       for (const c of uniqueCodes) {
         try {
           const data = await fetchFundData(c);
+          // 关键：保留原有的持有金额
+          const old = funds.find((f) => f.code === c);
+          if (old?.amount) {
+            data.amount = old.amount;
+          }
           updated.push(data);
         } catch (e) {
           console.error(`刷新基金 ${c} 失败`, e);
@@ -637,88 +959,6 @@ export default function HomePage() {
       refreshingRef.current = false;
       setRefreshing(false);
     }
-  };
-
-  const toggleViewMode = () => {
-    const nextMode = viewMode === 'card' ? 'list' : 'card';
-    setViewMode(nextMode);
-    localStorage.setItem('viewMode', nextMode);
-  };
-
-  const addFund = async (e) => {
-    e?.preventDefault?.();
-    setError('');
-    const manualTokens = String(searchTerm || '')
-      .split(/[^0-9A-Za-z]+/)
-      .map(t => t.trim())
-      .filter(t => t.length > 0);
-    const selectedCodes = Array.from(new Set([
-      ...selectedFunds.map(f => f.CODE),
-      ...manualTokens.filter(t => /^\d{6}$/.test(t))
-    ]));
-    if (selectedCodes.length === 0) {
-      setError('请输入或选择基金代码');
-      return;
-    }
-    setLoading(true);
-    try {
-      const newFunds = [];
-      const failures = [];
-      const nameMap = {};
-      selectedFunds.forEach(f => { nameMap[f.CODE] = f.NAME; });
-      for (const c of selectedCodes) {
-        if (funds.some((f) => f.code === c)) continue;
-        try {
-          const data = await fetchFundData(c);
-          newFunds.push(data);
-        } catch (err) {
-          failures.push({ code: c, name: nameMap[c] });
-        }
-      }
-      if (newFunds.length === 0) {
-        setError('未添加任何新基金');
-      } else {
-        const next = dedupeByCode([...newFunds, ...funds]);
-        setFunds(next);
-        localStorage.setItem('funds', JSON.stringify(next));
-      }
-      setSearchTerm('');
-      setSelectedFunds([]);
-      setShowDropdown(false);
-      if (failures.length > 0) {
-        setAddFailures(failures);
-        setAddResultOpen(true);
-      }
-    } catch (e) {
-      setError(e.message || '添加失败');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const removeFund = (removeCode) => {
-    const next = funds.filter((f) => f.code !== removeCode);
-    setFunds(next);
-    localStorage.setItem('funds', JSON.stringify(next));
-
-    // 【修改处4】同步删除展开状态
-    setExpandedCodes(prev => {
-      if (!prev.has(removeCode)) return prev;
-      const nextSet = new Set(prev);
-      nextSet.delete(removeCode);
-      localStorage.setItem('expandedCodes', JSON.stringify(Array.from(nextSet)));
-      return nextSet;
-    });
-
-    // 同步删除自选状态
-    setFavorites(prev => {
-      if (!prev.has(removeCode)) return prev;
-      const nextSet = new Set(prev);
-      nextSet.delete(removeCode);
-      localStorage.setItem('favorites', JSON.stringify(Array.from(nextSet)));
-      if (nextSet.size === 0) setCurrentTab('all');
-      return nextSet;
-    });
   };
 
   const manualRefresh = async () => {
@@ -761,6 +1001,14 @@ export default function HomePage() {
             <span>刷新</span>
             <strong>{Math.round(refreshMs / 1000)}秒</strong>
           </div>
+          <button
+            className="icon-button"
+            aria-label="排行榜"
+            onClick={() => setLeaderboardOpen(true)}
+            title="基金排行榜"
+          >
+            <TrophyIcon width="18" height="18" />
+          </button>
           <button
             className="icon-button"
             aria-label="立即刷新"
@@ -863,11 +1111,26 @@ export default function HomePage() {
               )}
             </AnimatePresence>
           </div>
-
-          
-
           {error && <div className="muted" style={{ marginTop: 8, color: 'var(--danger)' }}>{error}</div>}
         </div>
+
+        {funds.length > 0 && (
+          <div className="col-12 glass card" style={{ padding: '16px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16 }}>
+             <div style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                  <span className="muted" style={{ fontSize: '12px' }}>总持有金额</span>
+                  <span style={{ fontSize: '20px', fontWeight: 700 }}>{summary.totalAmount.toFixed(2)}</span>
+                </div>
+                <div style={{ width: 1, height: 32, background: 'var(--border)' }}></div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                  <span className="muted" style={{ fontSize: '12px' }}>今日预估收益</span>
+                  <span className={summary.totalProfit > 0 ? 'up' : summary.totalProfit < 0 ? 'down' : ''} style={{ fontSize: '20px', fontWeight: 700 }}>
+                    {summary.totalProfit > 0 ? '+' : ''}{summary.totalProfit.toFixed(2)}
+                  </span>
+                </div>
+             </div>
+          </div>
+        )}
 
         <div className="col-12">
           {funds.length > 0 && (
@@ -962,169 +1225,214 @@ export default function HomePage() {
                         }
                         if (sortBy === 'name') return a.name.localeCompare(b.name, 'zh-CN');
                         if (sortBy === 'code') return a.code.localeCompare(b.code);
-                        return 0; // default order is the order in the array
+                        return 0; // default order
                       })
-                      .map((f) => (
-                      <motion.div
-                        layout="position"
-                        key={f.code}
-                        className={viewMode === 'card' ? 'col-6' : 'table-row-wrapper'}
-                        initial={{ opacity: 0, scale: 0.95 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        exit={{ opacity: 0, scale: 0.95 }}
-                        transition={{ duration: 0.2 }}
-                      >
-                      <div className={viewMode === 'card' ? 'glass card' : 'table-row'}>
-                        {viewMode === 'list' ? (
-                          <>
-                            <div className="table-cell name-cell">
-                              <button
-                                className={`icon-button fav-button ${favorites.has(f.code) ? 'active' : ''}`}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  toggleFavorite(f.code);
-                                }}
-                                title={favorites.has(f.code) ? "取消自选" : "添加自选"}
-                              >
-                                <StarIcon width="18" height="18" filled={favorites.has(f.code)} />
-                              </button>
-                              <div className="title-text">
-                                <span className="name-text">{f.name}</span>
-                                <span className="muted code-text">#{f.code}</span>
-                              </div>
-                            </div>
-                            <div className="table-cell text-right value-cell">
-                              <span style={{ fontWeight: 700 }}>{f.estPricedCoverage > 0.05 ? f.estGsz.toFixed(4) : (f.gsz ?? '—')}</span>
-                            </div>
-                            <div className="table-cell text-right change-cell">
-                              <span className={f.estPricedCoverage > 0.05 ? (f.estGszzl > 0 ? 'up' : f.estGszzl < 0 ? 'down' : '') : (Number(f.gszzl) > 0 ? 'up' : Number(f.gszzl) < 0 ? 'down' : '')} style={{ fontWeight: 700 }}>
-                                {f.estPricedCoverage > 0.05 ? `${f.estGszzl > 0 ? '+' : ''}${f.estGszzl.toFixed(2)}%` : (typeof f.gszzl === 'number' ? `${f.gszzl > 0 ? '+' : ''}${f.gszzl.toFixed(2)}%` : f.gszzl ?? '—')}
-                              </span>
-                            </div>
-                            <div className="table-cell text-right time-cell">
-                              <span className="muted" style={{ fontSize: '12px' }}>{f.gztime || f.time || '-'}</span>
-                            </div>
-                            <div className="table-cell text-center action-cell">
-                              <button
-                                className="icon-button danger"
-                                onClick={() => removeFund(f.code)}
-                                title="删除"
-                                style={{ width: '28px', height: '28px' }}
-                              >
-                                <TrashIcon width="14" height="14" />
-                              </button>
-                            </div>
-                          </>
-                        ) : (
-                          <>
-                          <div className="row" style={{ marginBottom: 10 }}>
-                            <div className="title">
-                              <button
-                                className={`icon-button fav-button ${favorites.has(f.code) ? 'active' : ''}`}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  toggleFavorite(f.code);
-                                }}
-                                title={favorites.has(f.code) ? "取消自选" : "添加自选"}
-                              >
-                                <StarIcon width="18" height="18" filled={favorites.has(f.code)} />
-                              </button>
-                              <div className="title-text">
-                                <span>{f.name}</span>
-                                <span className="muted">#{f.code}</span>
-                              </div>
-                            </div>
+                      .map((f) => {
+                        // 计算单只基金的预估收益
+                        const amount = parseFloat(f.amount) || 0;
+                        const rate = f.estPricedCoverage > 0.05 ? f.estGszzl : (Number(f.gszzl) || 0);
+                        const profit = amount * rate / 100;
 
-                            <div className="actions">
-                              <div className="badge-v">
-                                <span>估值时间</span>
-                                <strong>{f.gztime || f.time || '-'}</strong>
-                              </div>
-                              <button
-                                className="icon-button danger"
-                                onClick={() => removeFund(f.code)}
-                                title="删除"
-                              >
-                                <TrashIcon width="18" height="18" />
-                              </button>
-                            </div>
-                          </div>
-
-                          <div className="row" style={{ marginBottom: 12 }}>
-                            <Stat label="单位净值" value={f.dwjz ?? '—'} />
-                            <Stat label="估值净值" value={f.estPricedCoverage > 0.05 ? f.estGsz.toFixed(4) : (f.gsz ?? '—')} />
-                            <Stat
-                              label="涨跌幅"
-                              value={f.estPricedCoverage > 0.05 ? `${f.estGszzl > 0 ? '+' : ''}${f.estGszzl.toFixed(2)}%` : (typeof f.gszzl === 'number' ? `${f.gszzl > 0 ? '+' : ''}${f.gszzl.toFixed(2)}%` : f.gszzl ?? '—')}
-                              delta={f.estPricedCoverage > 0.05 ? f.estGszzl : (Number(f.gszzl) || 0)}
-                            />
-                          </div>
-                          {f.estPricedCoverage > 0.05 && (
-                            <div style={{ fontSize: '10px', color: 'var(--muted)', marginTop: -8, marginBottom: 10, textAlign: 'right' }}>
-                              基于 {Math.round(f.estPricedCoverage * 100)}% 持仓估算
-                            </div>
-                          )}
-                          <div
-                            style={{ marginBottom: 8, cursor: 'pointer', userSelect: 'none' }}
-                            className="title"
-                            // 【修改处5】点击触发展开
-                            onClick={() => toggleExpand(f.code)}
+                        return (
+                          <motion.div
+                            layout="position"
+                            key={f.code}
+                            className={viewMode === 'card' ? 'col-6' : 'table-row-wrapper'}
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.95 }}
+                            transition={{ duration: 0.2 }}
                           >
-                            <div className="row" style={{ width: '100%', flex: 1 }}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                                <span>前10重仓股票</span>
-                                <ChevronIcon
-                                  width="16"
-                                  height="16"
-                                  className="muted"
-                                  style={{
-                                    // 【修改处6】图标旋转逻辑：在集合中(展开)则朝下(0deg)，不在集合中(收起)则朝右(-90deg)
-                                    transform: expandedCodes.has(f.code) ? 'rotate(0deg)' : 'rotate(-90deg)',
-                                    transition: 'transform 0.2s ease'
-                                  }}
+                          <div className={viewMode === 'card' ? 'glass card' : 'table-row'} style={viewMode === 'list' ? { gridTemplateColumns: '2fr 1fr 1.2fr 1.2fr 1.5fr 60px' } : {}}>
+                            {viewMode === 'list' ? (
+                              <>
+                                <div className="table-cell name-cell" style={{ minWidth: 0 }}> {/* minWidth:0 确保在flex/grid中能正确压缩 */}
+  <button
+    className={`icon-button fav-button ${favorites.has(f.code) ? 'active' : ''}`}
+    onClick={(e) => {
+      e.stopPropagation();
+      toggleFavorite(f.code);
+    }}
+    title={favorites.has(f.code) ? "取消自选" : "添加自选"}
+  >
+    <StarIcon width="18" height="18" filled={favorites.has(f.code)} />
+  </button>
+  
+  <div className="title-text" style={{ overflow: 'hidden', display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+    <span 
+      className="name-text" 
+      title={f.name} // 鼠标悬停显示全名
+      style={{
+        fontWeight: 600,
+        whiteSpace: 'nowrap',      // 1. 禁止换行
+        overflow: 'hidden',        // 2. 超出隐藏
+        textOverflow: 'ellipsis',  // 3. 超出显示省略号
+        // 4. 动态字号逻辑：字数>18用12px，>12用13px，否则默认
+        fontSize: f.name.length > 18 ? '12px' : f.name.length > 12 ? '13px' : '15px',
+        lineHeight: '1.5'
+      }}
+    >
+      {f.name}
+    </span>
+    <span className="muted code-text" style={{ fontSize: '12px' }}>#{f.code}</span>
+  </div>
+</div>
+                                <div className="table-cell text-right value-cell">
+                                  <span style={{ fontWeight: 700 }}>{f.estPricedCoverage > 0.05 ? f.estGsz.toFixed(4) : (f.gsz ?? '—')}</span>
+                                </div>
+                                <div className="table-cell text-right change-cell">
+                                  <span className={f.estPricedCoverage > 0.05 ? (f.estGszzl > 0 ? 'up' : f.estGszzl < 0 ? 'down' : '') : (Number(f.gszzl) > 0 ? 'up' : Number(f.gszzl) < 0 ? 'down' : '')} style={{ fontWeight: 700 }}>
+                                    {f.estPricedCoverage > 0.05 ? `${f.estGszzl > 0 ? '+' : ''}${f.estGszzl.toFixed(2)}%` : (typeof f.gszzl === 'number' ? `${f.gszzl > 0 ? '+' : ''}${f.gszzl.toFixed(2)}%` : f.gszzl ?? '—')}
+                                  </span>
+                                </div>
+                                {/* 新增：持有/收益列 */}
+                                <div className="table-cell text-right" style={{ flexDirection: 'column', alignItems: 'flex-end', gap: 2 }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: 4, cursor: 'pointer' }} onClick={() => setEditingFund(f)} title="点击修改持有金额">
+                                    <span style={{ fontSize: 13 }}>{amount > 0 ? amount.toFixed(0) : '--'}</span>
+                                    <EditIcon width="12" height="12" style={{ color: 'var(--muted)' }} />
+                                  </div>
+                                </div>
+                                <div className="table-cell text-right">
+                                  {amount > 0 ? (
+                                    <span className={profit > 0 ? 'up' : profit < 0 ? 'down' : ''} style={{ fontWeight: 700 }}>
+                                      {profit > 0 ? '+' : ''}{profit.toFixed(2)}
+                                    </span>
+                                  ) : <span className="muted">--</span>}
+                                </div>
+                                <div className="table-cell text-center action-cell">
+                                  <button
+                                    className="icon-button danger"
+                                    onClick={() => removeFund(f.code)}
+                                    title="删除"
+                                    style={{ width: '28px', height: '28px' }}
+                                  >
+                                    <TrashIcon width="14" height="14" />
+                                  </button>
+                                </div>
+                              </>
+                            ) : (
+                              <>
+                              <div className="row" style={{ marginBottom: 10 }}>
+                                <div className="title">
+                                  <button
+                                    className={`icon-button fav-button ${favorites.has(f.code) ? 'active' : ''}`}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      toggleFavorite(f.code);
+                                    }}
+                                    title={favorites.has(f.code) ? "取消自选" : "添加自选"}
+                                  >
+                                    <StarIcon width="18" height="18" filled={favorites.has(f.code)} />
+                                  </button>
+                                  <div className="title-text">
+                                    <span>{f.name}</span>
+                                    <span className="muted">#{f.code}</span>
+                                  </div>
+                                </div>
+
+                                <div className="actions">
+                                  <button
+                                    className="icon-button danger"
+                                    onClick={() => removeFund(f.code)}
+                                    title="删除"
+                                  >
+                                    <TrashIcon width="18" height="18" />
+                                  </button>
+                                </div>
+                              </div>
+
+                              <div className="row" style={{ marginBottom: 12 }}>
+                                <Stat label="估值净值" value={f.estPricedCoverage > 0.05 ? f.estGsz.toFixed(4) : (f.gsz ?? '—')} />
+                                <Stat
+                                  label="涨跌幅"
+                                  value={f.estPricedCoverage > 0.05 ? `${f.estGszzl > 0 ? '+' : ''}${f.estGszzl.toFixed(2)}%` : (typeof f.gszzl === 'number' ? `${f.gszzl > 0 ? '+' : ''}${f.gszzl.toFixed(2)}%` : f.gszzl ?? '—')}
+                                  delta={f.estPricedCoverage > 0.05 ? f.estGszzl : (Number(f.gszzl) || 0)}
                                 />
                               </div>
-                              <span className="muted">涨跌幅 / 占比</span>
-                            </div>
-                          </div>
-                          <AnimatePresence>
-                            {/* 【修改处7】只有在 expandedCodes 集合中才显示 */}
-                            {expandedCodes.has(f.code) && (
-                              <motion.div
-                                initial={{ height: 0, opacity: 0 }}
-                                animate={{ height: 'auto', opacity: 1 }}
-                                exit={{ height: 0, opacity: 0 }}
-                                transition={{ duration: 0.3, ease: 'easeInOut' }}
-                                style={{ overflow: 'hidden' }}
-                              >
-                                {Array.isArray(f.holdings) && f.holdings.length ? (
-                                  <div className="list">
-                                    {f.holdings.map((h, idx) => (
-                                      <div className="item" key={idx}>
-                                        <span className="name">{h.name}</span>
-                                        <div className="values">
-                                          {typeof h.change === 'number' && (
-                                            <span className={`badge ${h.change > 0 ? 'up' : h.change < 0 ? 'down' : ''}`} style={{ marginRight: 8 }}>
-                                              {h.change > 0 ? '+' : ''}{h.change.toFixed(2)}%
-                                            </span>
-                                          )}
-                                          <span className="weight">{h.weight}</span>
-                                        </div>
-                                      </div>
-                                    ))}
+
+                              <div className="row" style={{ marginBottom: 12, padding: '8px 12px', background: 'var(--bg)', borderRadius: '8px', border: '1px solid var(--border)' }}>
+                                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                    <span className="muted" style={{ fontSize: 11 }}>持有金额</span>
+                                    <button onClick={() => setEditingFund(f)} style={{ border: 'none', background: 'transparent', cursor: 'pointer', padding: 0, display: 'flex' }}>
+                                      <EditIcon width="12" height="12" style={{ color: 'var(--accent)' }} />
+                                    </button>
                                   </div>
-                                ) : (
-                                  <div className="muted" style={{ padding: '8px 0' }}>暂无重仓数据</div>
+                                  <span style={{ fontWeight: 600 }}>{amount > 0 ? amount.toFixed(2) : '--'}</span>
+                                </div>
+                                <div style={{ width: 1, height: 24, background: 'var(--border)' }}></div>
+                                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'flex-end' }}>
+                                  <span className="muted" style={{ fontSize: 11 }}>预估收益</span>
+                                  <span className={profit > 0 ? 'up' : profit < 0 ? 'down' : ''} style={{ fontWeight: 700 }}>
+                                    {amount > 0 ? `${profit > 0 ? '+' : ''}${profit.toFixed(2)}` : '--'}
+                                  </span>
+                                </div>
+                              </div>
+
+                              {f.estPricedCoverage > 0.05 && (
+                                <div style={{ fontSize: '10px', color: 'var(--muted)', marginTop: -8, marginBottom: 10, textAlign: 'right' }}>
+                                  基于 {Math.round(f.estPricedCoverage * 100)}% 持仓估算
+                                </div>
+                              )}
+                              <div
+                                style={{ marginBottom: 8, cursor: 'pointer', userSelect: 'none' }}
+                                className="title"
+                                onClick={() => toggleExpand(f.code)}
+                              >
+                                <div className="row" style={{ width: '100%', flex: 1 }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                    <span>前10重仓股票</span>
+                                    <ChevronIcon
+                                      width="16"
+                                      height="16"
+                                      className="muted"
+                                      style={{
+                                        transform: expandedCodes.has(f.code) ? 'rotate(0deg)' : 'rotate(-90deg)',
+                                        transition: 'transform 0.2s ease'
+                                      }}
+                                    />
+                                  </div>
+                                  <span className="muted">涨跌幅 / 占比</span>
+                                </div>
+                              </div>
+                              <AnimatePresence>
+                                {expandedCodes.has(f.code) && (
+                                  <motion.div
+                                    initial={{ height: 0, opacity: 0 }}
+                                    animate={{ height: 'auto', opacity: 1 }}
+                                    exit={{ height: 0, opacity: 0 }}
+                                    transition={{ duration: 0.3, ease: 'easeInOut' }}
+                                    style={{ overflow: 'hidden' }}
+                                  >
+                                    {Array.isArray(f.holdings) && f.holdings.length ? (
+                                      <div className="list">
+                                        {f.holdings.map((h, idx) => (
+                                          <div className="item" key={idx}>
+                                            <span className="name">{h.name}</span>
+                                            <div className="values">
+                                              {typeof h.change === 'number' && (
+                                                <span className={`badge ${h.change > 0 ? 'up' : h.change < 0 ? 'down' : ''}`} style={{ marginRight: 8 }}>
+                                                  {h.change > 0 ? '+' : ''}{h.change.toFixed(2)}%
+                                                </span>
+                                              )}
+                                              <span className="weight">{h.weight}</span>
+                                            </div>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    ) : (
+                                      <div className="muted" style={{ padding: '8px 0' }}>暂无重仓数据</div>
+                                    )}
+                                  </motion.div>
                                 )}
-                              </motion.div>
-                            )}
-                          </AnimatePresence>
-                        </>
-                      )}
-                      </div>
-                    </motion.div>
-                  ))}
-                </AnimatePresence>
+                              </AnimatePresence>
+                            </>
+                          )}
+                          </div>
+                        </motion.div>
+                      );
+                    })}
+                  </AnimatePresence>
                 </div>
               </motion.div>
             </AnimatePresence>
@@ -1137,7 +1445,8 @@ export default function HomePage() {
         </p>
         <p>注：估算数据与真实结算数据会有1%左右误差</p>
         <div style={{ marginTop: 12, opacity: 0.8 }}>
-          
+          <p>
+          </p>
         </div>
       </div>
 
@@ -1146,6 +1455,23 @@ export default function HomePage() {
           <FeedbackModal
             key={feedbackNonce}
             onClose={() => setFeedbackOpen(false)}
+          />
+        )}
+      </AnimatePresence>
+      <AnimatePresence>
+        {leaderboardOpen && (
+          <LeaderboardModal
+            onClose={() => setLeaderboardOpen(false)}
+            onAdd={handleAddFromLeaderboard}
+          />
+        )}
+      </AnimatePresence>
+      <AnimatePresence>
+        {editingFund && (
+          <EditAmountModal
+            fund={editingFund}
+            onClose={() => setEditingFund(null)}
+            onSave={handleSaveAmount}
           />
         )}
       </AnimatePresence>
