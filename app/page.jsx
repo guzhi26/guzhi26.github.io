@@ -532,6 +532,16 @@ export default function HomePage() {
   const [addResultOpen, setAddResultOpen] = useState(false);
   const [addFailures, setAddFailures] = useState([]);
 
+  // --- 新增：手机端检测 ---
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 640);
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+  // ----------------------
+
   // 计算总资产和总收益
   const summary = useMemo(() => {
     let totalAmount = 0;
@@ -547,65 +557,62 @@ export default function HomePage() {
     return { totalAmount, totalProfit };
   }, [funds]);
 
-// --- 新增代码开始：多标签页自动同步 ---
-useEffect(() => {
-  const handleStorageChange = (e) => {
-    // 监听 funds 的变化
-    if (e.key === 'funds') {
-      try {
-        const newFunds = e.newValue ? JSON.parse(e.newValue) : [];
-        setFunds(newFunds);
-      } catch (err) {
-        console.error('同步多标签页数据失败', err);
+  // --- 新增代码开始：多标签页自动同步 ---
+  useEffect(() => {
+    const handleStorageChange = (e) => {
+      if (e.key === 'funds') {
+        try {
+          const newFunds = e.newValue ? JSON.parse(e.newValue) : [];
+          setFunds(newFunds);
+        } catch (err) { console.error(err); }
       }
-    }
-    // 监听 favorites 的变化（如果需要同步自选状态）
-    if (e.key === 'favorites') {
-      try {
-        const newFavs = e.newValue ? new Set(JSON.parse(e.newValue)) : new Set();
-        setFavorites(newFavs);
-      } catch (err) {
-        console.error('同步多标签页自选失败', err);
+      if (e.key === 'favorites') {
+        try {
+          const newFavs = e.newValue ? new Set(JSON.parse(e.newValue)) : new Set();
+          setFavorites(newFavs);
+        } catch (err) { console.error(err); }
       }
-    }
-    // 监听 expandedCodes 的变化（同步展开状态）
-    if (e.key === 'expandedCodes') {
-      try {
-        const newExpanded = e.newValue ? new Set(JSON.parse(e.newValue)) : new Set();
-        setExpandedCodes(newExpanded);
-      } catch (err) {
-        console.error('同步展开状态失败', err);
+      if (e.key === 'expandedCodes') {
+        try {
+          const newExpanded = e.newValue ? new Set(JSON.parse(e.newValue)) : new Set();
+          setExpandedCodes(newExpanded);
+        } catch (err) { console.error(err); }
       }
-    }
-  };
+    };
 
-  // 监听页面可见性变化（当你切回这个标签页时，强制重新读取一次最新数据）
-  const handleVisibilityChange = () => {
-    if (document.visibilityState === 'visible') {
-      const saved = JSON.parse(localStorage.getItem('funds') || '[]');
-      if (Array.isArray(saved) && saved.length > 0) {
-         // 这里做一个简单的去重对比，避免不必要的重渲染
-         setFunds(prev => {
-           const prevJson = JSON.stringify(prev);
-           const newJson = JSON.stringify(saved);
-           return prevJson === newJson ? prev : saved;
-         });
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        const saved = JSON.parse(localStorage.getItem('funds') || '[]');
+        if (Array.isArray(saved) && saved.length > 0) {
+           setFunds(prev => {
+             const prevJson = JSON.stringify(prev);
+             const newJson = JSON.stringify(saved);
+             return prevJson === newJson ? prev : saved;
+           });
+        }
+        const savedFav = JSON.parse(localStorage.getItem('favorites') || '[]');
+        setFavorites(new Set(savedFav));
       }
-      
-      // 同步自选
-      const savedFav = JSON.parse(localStorage.getItem('favorites') || '[]');
-      setFavorites(new Set(savedFav));
-    }
-  };
+    };
 
-  window.addEventListener('storage', handleStorageChange);
-  document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('storage', handleStorageChange);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, []);
+  // --- 新增代码结束 ---
 
-  return () => {
-    window.removeEventListener('storage', handleStorageChange);
-    document.removeEventListener('visibilitychange', handleVisibilityChange);
-  };
-}, []); // 空依赖数组，只在组件挂载时执行一次
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setShowDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const toggleFavorite = (code) => {
     setFavorites(prev => {
@@ -874,7 +881,6 @@ useEffect(() => {
       const failures = [];
       
       for (const c of codes) {
-        // 如果已存在则保留金额并更新
         const existing = funds.find(f => f.code === c);
         
         try {
@@ -890,9 +896,7 @@ useEffect(() => {
       }
       
       if (newFunds.length > 0) {
-        // 使用新获取的数据覆盖或添加到列表中
         const updated = [...newFunds];
-        // 保留原列表中没被更新的
         funds.forEach(f => {
           if (!updated.some(u => u.code === f.code)) {
             updated.push(f);
@@ -986,7 +990,6 @@ useEffect(() => {
       for (const c of uniqueCodes) {
         try {
           const data = await fetchFundData(c);
-          // 关键：保留原有的持有金额
           const old = funds.find((f) => f.code === c);
           if (old?.amount) {
             data.amount = old.amount;
@@ -1278,10 +1281,15 @@ useEffect(() => {
                         return 0; // default order
                       })
                       .map((f) => {
-                        // 计算单只基金的预估收益
                         const amount = parseFloat(f.amount) || 0;
                         const rate = f.estPricedCoverage > 0.05 ? f.estGszzl : (Number(f.gszzl) || 0);
                         const profit = amount * rate / 100;
+
+                        // --- 核心修复：响应式布局配置 ---
+                        // 手机端隐藏净值列，给名字留空间
+                        const gridTemplate = isMobile 
+                            ? 'minmax(0, 1fr) 70px 60px 70px 30px'  // 手机：名 | 涨跌 | 金额 | 收益 | 删
+                            : 'minmax(0, 2fr) 1fr 1.2fr 1.2fr 1.5fr 50px'; // 电脑：名 | 估值 | 涨跌 | 金额 | 收益 | 删
 
                         return (
                           <motion.div
@@ -1293,55 +1301,63 @@ useEffect(() => {
                             exit={{ opacity: 0, scale: 0.95 }}
                             transition={{ duration: 0.2 }}
                           >
-                          <div className={viewMode === 'card' ? 'glass card' : 'table-row'} style={viewMode === 'list' ? { gridTemplateColumns: '2fr 1fr 1.2fr 1.2fr 1.5fr 60px' } : {}}>
+                          <div className={viewMode === 'card' ? 'glass card' : 'table-row'} style={viewMode === 'list' ? { gridTemplateColumns: gridTemplate } : {}}>
                             {viewMode === 'list' ? (
                               <>
-                                <div className="table-cell name-cell" style={{ minWidth: 0 }}> {/* minWidth:0 确保在flex/grid中能正确压缩 */}
-  <button
-    className={`icon-button fav-button ${favorites.has(f.code) ? 'active' : ''}`}
-    onClick={(e) => {
-      e.stopPropagation();
-      toggleFavorite(f.code);
-    }}
-    title={favorites.has(f.code) ? "取消自选" : "添加自选"}
-  >
-    <StarIcon width="18" height="18" filled={favorites.has(f.code)} />
-  </button>
-  
-  <div className="title-text" style={{ overflow: 'hidden', display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-    <span 
-      className="name-text" 
-      title={f.name} // 鼠标悬停显示全名
-      style={{
-        fontWeight: 600,
-        whiteSpace: 'nowrap',      // 1. 禁止换行
-        overflow: 'hidden',        // 2. 超出隐藏
-        textOverflow: 'ellipsis',  // 3. 超出显示省略号
-        // 4. 动态字号逻辑：字数>18用12px，>12用13px，否则默认
-        fontSize: f.name.length > 18 ? '12px' : f.name.length > 12 ? '13px' : '15px',
-        lineHeight: '1.5'
-      }}
-    >
-      {f.name}
-    </span>
-    <span className="muted code-text" style={{ fontSize: '12px' }}>#{f.code}</span>
-  </div>
-</div>
-                                <div className="table-cell text-right value-cell">
-                                  <span style={{ fontWeight: 700 }}>{f.estPricedCoverage > 0.05 ? f.estGsz.toFixed(4) : (f.gsz ?? '—')}</span>
+                                {/* 名字列：添加了字体缩小和禁止换行逻辑 */}
+                                <div className="table-cell name-cell" style={{ minWidth: 0 }}>
+                                  <button
+                                    className={`icon-button fav-button ${favorites.has(f.code) ? 'active' : ''}`}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      toggleFavorite(f.code);
+                                    }}
+                                    title={favorites.has(f.code) ? "取消自选" : "添加自选"}
+                                  >
+                                    <StarIcon width="18" height="18" filled={favorites.has(f.code)} />
+                                  </button>
+                                  <div className="title-text" style={{ overflow: 'hidden', display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+                                    <span 
+                                        className="name-text" 
+                                        title={f.name}
+                                        style={{
+                                            fontWeight: 600,
+                                            whiteSpace: 'nowrap',
+                                            overflow: 'hidden',
+                                            textOverflow: 'ellipsis',
+                                            fontSize: f.name.length > 18 ? '12px' : f.name.length > 12 ? '13px' : '15px',
+                                            lineHeight: '1.5'
+                                        }}
+                                    >
+                                        {f.name}
+                                    </span>
+                                    <span className="muted code-text" style={{ fontSize: '12px' }}>#{f.code}</span>
+                                  </div>
                                 </div>
+
+                                {/* 估值/净值列：在手机上隐藏 */}
+                                {!isMobile && (
+                                    <div className="table-cell text-right value-cell">
+                                    <span style={{ fontWeight: 700 }}>{f.estPricedCoverage > 0.05 ? f.estGsz.toFixed(4) : (f.gsz ?? '—')}</span>
+                                    </div>
+                                )}
+
+                                {/* 涨跌幅列 */}
                                 <div className="table-cell text-right change-cell">
                                   <span className={f.estPricedCoverage > 0.05 ? (f.estGszzl > 0 ? 'up' : f.estGszzl < 0 ? 'down' : '') : (Number(f.gszzl) > 0 ? 'up' : Number(f.gszzl) < 0 ? 'down' : '')} style={{ fontWeight: 700 }}>
                                     {f.estPricedCoverage > 0.05 ? `${f.estGszzl > 0 ? '+' : ''}${f.estGszzl.toFixed(2)}%` : (typeof f.gszzl === 'number' ? `${f.gszzl > 0 ? '+' : ''}${f.gszzl.toFixed(2)}%` : f.gszzl ?? '—')}
                                   </span>
                                 </div>
-                                {/* 新增：持有/收益列 */}
+                                
+                                {/* 持有/编辑列 */}
                                 <div className="table-cell text-right" style={{ flexDirection: 'column', alignItems: 'flex-end', gap: 2 }}>
                                   <div style={{ display: 'flex', alignItems: 'center', gap: 4, cursor: 'pointer' }} onClick={() => setEditingFund(f)} title="点击修改持有金额">
                                     <span style={{ fontSize: 13 }}>{amount > 0 ? amount.toFixed(0) : '--'}</span>
                                     <EditIcon width="12" height="12" style={{ color: 'var(--muted)' }} />
                                   </div>
                                 </div>
+
+                                {/* 收益列 */}
                                 <div className="table-cell text-right">
                                   {amount > 0 ? (
                                     <span className={profit > 0 ? 'up' : profit < 0 ? 'down' : ''} style={{ fontWeight: 700 }}>
@@ -1349,6 +1365,8 @@ useEffect(() => {
                                     </span>
                                   ) : <span className="muted">--</span>}
                                 </div>
+
+                                {/* 删除按钮列 */}
                                 <div className="table-cell text-center action-cell">
                                   <button
                                     className="icon-button danger"
@@ -1361,6 +1379,7 @@ useEffect(() => {
                                 </div>
                               </>
                             ) : (
+                              // 卡片视图 (Card View) 保持不变
                               <>
                               <div className="row" style={{ marginBottom: 10 }}>
                                 <div className="title">
@@ -1495,8 +1514,7 @@ useEffect(() => {
         </p>
         <p>注：估算数据与真实结算数据会有1%左右误差</p>
         <div style={{ marginTop: 12, opacity: 0.8 }}>
-          <p>
-          </p>
+          
         </div>
       </div>
 
