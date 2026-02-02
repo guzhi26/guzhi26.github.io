@@ -532,16 +532,6 @@ export default function HomePage() {
   const [addResultOpen, setAddResultOpen] = useState(false);
   const [addFailures, setAddFailures] = useState([]);
 
-  // --- 新增：手机端检测 ---
-  const [isMobile, setIsMobile] = useState(false);
-  useEffect(() => {
-    const checkMobile = () => setIsMobile(window.innerWidth < 640);
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
-  }, []);
-  // ----------------------
-
   // 计算总资产和总收益
   const summary = useMemo(() => {
     let totalAmount = 0;
@@ -557,7 +547,7 @@ export default function HomePage() {
     return { totalAmount, totalProfit };
   }, [funds]);
 
-  // --- 新增代码开始：多标签页自动同步 ---
+  // --- 多标签页同步逻辑 ---
   useEffect(() => {
     const handleStorageChange = (e) => {
       if (e.key === 'funds') {
@@ -602,7 +592,6 @@ export default function HomePage() {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, []);
-  // --- 新增代码结束 ---
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -1265,8 +1254,14 @@ export default function HomePage() {
                 exit={{ opacity: 0, y: -10 }}
                 transition={{ duration: 0.2 }}
                 className={viewMode === 'card' ? 'grid' : 'table-container glass'}
+                style={viewMode === 'list' ? { 
+                    overflowX: 'auto', // 开启横向滚动
+                    WebkitOverflowScrolling: 'touch' // iOS流畅滚动
+                } : {}}
               >
-                <div className={viewMode === 'card' ? 'grid col-12' : ''} style={viewMode === 'card' ? { gridColumn: 'span 12', gap: 16 } : {}}>
+                <div className={viewMode === 'card' ? 'grid col-12' : ''} style={viewMode === 'card' ? { gridColumn: 'span 12', gap: 16 } : { 
+                    minWidth: '750px' // 关键点：强制容器宽度超过手机屏幕，触发滚动
+                }}>
                   <AnimatePresence mode="popLayout">
                     {funds
                       .filter(f => currentTab === 'all' || favorites.has(f.code))
@@ -1285,11 +1280,11 @@ export default function HomePage() {
                         const rate = f.estPricedCoverage > 0.05 ? f.estGszzl : (Number(f.gszzl) || 0);
                         const profit = amount * rate / 100;
 
-                        // --- 核心修复：响应式布局配置 ---
-                        // 手机端隐藏净值列，给名字留空间
-                        const gridTemplate = isMobile 
-                            ? 'minmax(0, 1fr) 70px 60px 70px 30px'  // 手机：名 | 涨跌 | 金额 | 收益 | 删
-                            : 'minmax(0, 2fr) 1fr 1.2fr 1.2fr 1.5fr 50px'; // 电脑：名 | 估值 | 涨跌 | 金额 | 收益 | 删
+                        // --- 布局修改 ---
+                        // 1. 不再隐藏任何列
+                        // 2. 使用固定的 minmax 宽度，保证在滚动时每列都有足够空间
+                        const gridTemplate = 'minmax(220px, 1.5fr) 100px 100px 100px 100px 60px'; 
+                        // 列定义：名字(最宽) | 估值 | 涨跌 | 金额 | 收益 | 删除
 
                         return (
                           <motion.div
@@ -1304,7 +1299,7 @@ export default function HomePage() {
                           <div className={viewMode === 'card' ? 'glass card' : 'table-row'} style={viewMode === 'list' ? { gridTemplateColumns: gridTemplate } : {}}>
                             {viewMode === 'list' ? (
                               <>
-                                {/* 名字列：添加了字体缩小和禁止换行逻辑 */}
+                                {/* 名字列 */}
                                 <div className="table-cell name-cell" style={{ minWidth: 0 }}>
                                   <button
                                     className={`icon-button fav-button ${favorites.has(f.code) ? 'active' : ''}`}
@@ -1325,7 +1320,7 @@ export default function HomePage() {
                                             whiteSpace: 'nowrap',
                                             overflow: 'hidden',
                                             textOverflow: 'ellipsis',
-                                            fontSize: f.name.length > 18 ? '12px' : f.name.length > 12 ? '13px' : '15px',
+                                            fontSize: '15px', // 恢复正常字号
                                             lineHeight: '1.5'
                                         }}
                                     >
@@ -1335,12 +1330,10 @@ export default function HomePage() {
                                   </div>
                                 </div>
 
-                                {/* 估值/净值列：在手机上隐藏 */}
-                                {!isMobile && (
-                                    <div className="table-cell text-right value-cell">
-                                    <span style={{ fontWeight: 700 }}>{f.estPricedCoverage > 0.05 ? f.estGsz.toFixed(4) : (f.gsz ?? '—')}</span>
-                                    </div>
-                                )}
+                                {/* 估值/净值列：恢复显示 */}
+                                <div className="table-cell text-right value-cell">
+                                <span style={{ fontWeight: 700 }}>{f.estPricedCoverage > 0.05 ? f.estGsz.toFixed(4) : (f.gsz ?? '—')}</span>
+                                </div>
 
                                 {/* 涨跌幅列 */}
                                 <div className="table-cell text-right change-cell">
@@ -1379,7 +1372,7 @@ export default function HomePage() {
                                 </div>
                               </>
                             ) : (
-                              // 卡片视图 (Card View) 保持不变
+                              // 卡片视图不变
                               <>
                               <div className="row" style={{ marginBottom: 10 }}>
                                 <div className="title">
