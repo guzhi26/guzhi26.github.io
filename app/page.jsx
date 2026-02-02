@@ -273,7 +273,7 @@ export default function HomePage() {
   const [sortBy, setSortBy] = useState('yield'); // default, name, yield, code
 
   // 视图模式
-  const [viewMode, setViewMode] = useState('card'); // card, list
+  const [viewMode, setViewMode] = useState('list'); // card, list
 
   // 反馈弹窗状态
   const [feedbackOpen, setFeedbackOpen] = useState(false);
