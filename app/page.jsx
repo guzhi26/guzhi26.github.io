@@ -610,7 +610,7 @@ export default function HomePage() {
                 <div style={{ width: 1, height: 32, background: 'var(--border)' }}></div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}><span className="muted" style={{ fontSize: '12px' }}>今日预估收益</span><span className={summary.totalProfit > 0 ? 'up' : summary.totalProfit < 0 ? 'down' : ''} style={{ fontSize: '20px', fontWeight: 700 }}>{summary.totalProfit > 0 ? '+' : ''}{summary.totalProfit.toFixed(2)}</span></div>
              </div>
-             {/* 新增：快速清空按钮区域 */}
+             {/* 快速清空按钮区域 */}
              <div style={{ display: 'flex', gap: 12 }}>
                 <button className="button sm" style={{ background: 'transparent', color: 'var(--danger)', border: '1px solid var(--danger)', fontSize: '12px', padding: '6px 12px', height: 'auto' }} onClick={clearFavorites}>清空自选</button>
                 <button className="button sm" style={{ background: 'var(--danger)', color: '#fff', fontSize: '12px', padding: '6px 12px', height: 'auto', border: 'none' }} onClick={clearAll}>清空全部</button>
@@ -666,8 +666,9 @@ export default function HomePage() {
                         const amount = parseFloat(f.amount) || 0;
                         const rate = f.estPricedCoverage > 0.05 ? f.estGszzl : (Number(f.gszzl) || 0);
                         const profit = amount * rate / 100;
-                        // 修正 Grid Template：Name | Change | Valuation | Amount | Profit | Delete
-                        const gridTemplate = 'minmax(200px, 1.5fr) 90px 90px 90px 90px 50px'; 
+                        // --- 核心修改：合并了名字和涨跌幅，移除了独立的涨跌列 ---
+                        // Template: Name+Change(flexible) | Valuation | Amount | Profit | Delete
+                        const gridTemplate = 'minmax(240px, 2fr) 90px 90px 90px 50px'; 
                         
                         return (
                           <motion.div
@@ -680,22 +681,24 @@ export default function HomePage() {
                           <div className={viewMode === 'card' ? 'glass card' : 'table-row'} style={viewMode === 'list' ? { gridTemplateColumns: gridTemplate } : {}}>
                             {viewMode === 'list' ? (
                               <>
-                                <div className="table-cell name-cell" style={{ minWidth: 0 }}>
+                                {/* 核心修改：名字列，包含了涨跌幅 */}
+                                <div className="table-cell name-cell" style={{ minWidth: 0, display: 'flex', alignItems: 'center' }}>
                                   <button className={`icon-button fav-button ${favorites.has(f.code) ? 'active' : ''}`} onClick={(e) => { e.stopPropagation(); toggleFavorite(f.code); }}>
                                     <StarIcon width="18" height="18" filled={favorites.has(f.code)} />
                                   </button>
-                                  <div className="title-text" style={{ overflow: 'hidden', display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-                                    <span className="name-text" title={f.name} style={{ fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', fontSize: '15px', lineHeight: '1.5' }}>{f.name}</span>
+                                  <div className="title-text" style={{ overflow: 'hidden', display: 'flex', flexDirection: 'column', minWidth: 0, flex: 1 }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                       {/* 名字自动省略 */}
+                                       <span className="name-text" title={f.name} style={{ fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', fontSize: '15px', lineHeight: '1.5', flex: '0 1 auto' }}>{f.name}</span>
+                                       {/* 涨跌幅紧随其后，不省略 */}
+                                       <span className={f.estPricedCoverage > 0.05 ? (f.estGszzl > 0 ? 'up' : f.estGszzl < 0 ? 'down' : '') : (Number(f.gszzl) > 0 ? 'up' : Number(f.gszzl) < 0 ? 'down' : '')} style={{ fontWeight: 700, fontSize: '14px', flexShrink: 0 }}>
+                                          {f.estPricedCoverage > 0.05 ? `${f.estGszzl > 0 ? '+' : ''}${f.estGszzl.toFixed(2)}%` : (typeof f.gszzl === 'number' ? `${f.gszzl > 0 ? '+' : ''}${f.gszzl.toFixed(2)}%` : f.gszzl ?? '—')}
+                                       </span>
+                                    </div>
                                     <span className="muted code-text" style={{ fontSize: '12px' }}>#{f.code}</span>
                                   </div>
                                 </div>
-                                {/* 涨跌幅列 - 第二列 */}
-                                <div className="table-cell text-right change-cell">
-                                  <span className={f.estPricedCoverage > 0.05 ? (f.estGszzl > 0 ? 'up' : f.estGszzl < 0 ? 'down' : '') : (Number(f.gszzl) > 0 ? 'up' : Number(f.gszzl) < 0 ? 'down' : '')} style={{ fontWeight: 700 }}>
-                                    {f.estPricedCoverage > 0.05 ? `${f.estGszzl > 0 ? '+' : ''}${f.estGszzl.toFixed(2)}%` : (typeof f.gszzl === 'number' ? `${f.gszzl > 0 ? '+' : ''}${f.gszzl.toFixed(2)}%` : f.gszzl ?? '—')}
-                                  </span>
-                                </div>
-                                {/* 估值/净值列 - 第三列 */}
+                                {/* 估值/净值列 */}
                                 <div className="table-cell text-right value-cell">
                                   <span style={{ fontWeight: 700 }}>{f.estPricedCoverage > 0.05 ? f.estGsz.toFixed(4) : (f.gsz ?? '—')}</span>
                                 </div>
