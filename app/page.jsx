@@ -1255,12 +1255,12 @@ export default function HomePage() {
                 transition={{ duration: 0.2 }}
                 className={viewMode === 'card' ? 'grid' : 'table-container glass'}
                 style={viewMode === 'list' ? { 
-                    overflowX: 'auto', // 开启横向滚动
-                    WebkitOverflowScrolling: 'touch' // iOS流畅滚动
+                    overflowX: 'auto',
+                    WebkitOverflowScrolling: 'touch' 
                 } : {}}
               >
                 <div className={viewMode === 'card' ? 'grid col-12' : ''} style={viewMode === 'card' ? { gridColumn: 'span 12', gap: 16 } : { 
-                    minWidth: '750px' // 关键点：强制容器宽度超过手机屏幕，触发滚动
+                    minWidth: '750px' 
                 }}>
                   <AnimatePresence mode="popLayout">
                     {funds
@@ -1280,12 +1280,8 @@ export default function HomePage() {
                         const rate = f.estPricedCoverage > 0.05 ? f.estGszzl : (Number(f.gszzl) || 0);
                         const profit = amount * rate / 100;
 
-                        // --- 布局修改 ---
-                        // 1. 不再隐藏任何列
-                        // 2. 使用固定的 minmax 宽度，保证在滚动时每列都有足够空间
                         const gridTemplate = 'minmax(220px, 1.5fr) 100px 100px 100px 100px 60px'; 
-                        // 列定义：名字(最宽) | 估值 | 涨跌 | 金额 | 收益 | 删除
-
+                        
                         return (
                           <motion.div
                             layout="position"
@@ -1320,7 +1316,7 @@ export default function HomePage() {
                                             whiteSpace: 'nowrap',
                                             overflow: 'hidden',
                                             textOverflow: 'ellipsis',
-                                            fontSize: '15px', // 恢复正常字号
+                                            fontSize: '15px', 
                                             lineHeight: '1.5'
                                         }}
                                     >
@@ -1330,18 +1326,18 @@ export default function HomePage() {
                                   </div>
                                 </div>
 
-                                {/* 估值/净值列：恢复显示 */}
-                                <div className="table-cell text-right value-cell">
-                                <span style={{ fontWeight: 700 }}>{f.estPricedCoverage > 0.05 ? f.estGsz.toFixed(4) : (f.gsz ?? '—')}</span>
-                                </div>
-
-                                {/* 涨跌幅列 */}
+                                {/* 涨跌幅列 (原本是第3个，现在提到第2个) */}
                                 <div className="table-cell text-right change-cell">
                                   <span className={f.estPricedCoverage > 0.05 ? (f.estGszzl > 0 ? 'up' : f.estGszzl < 0 ? 'down' : '') : (Number(f.gszzl) > 0 ? 'up' : Number(f.gszzl) < 0 ? 'down' : '')} style={{ fontWeight: 700 }}>
                                     {f.estPricedCoverage > 0.05 ? `${f.estGszzl > 0 ? '+' : ''}${f.estGszzl.toFixed(2)}%` : (typeof f.gszzl === 'number' ? `${f.gszzl > 0 ? '+' : ''}${f.gszzl.toFixed(2)}%` : f.gszzl ?? '—')}
                                   </span>
                                 </div>
-                                
+
+                                {/* 估值/净值列 (原本是第2个，现在放到第3个) */}
+                                <div className="table-cell text-right value-cell">
+                                <span style={{ fontWeight: 700 }}>{f.estPricedCoverage > 0.05 ? f.estGsz.toFixed(4) : (f.gsz ?? '—')}</span>
+                                </div>
+
                                 {/* 持有/编辑列 */}
                                 <div className="table-cell text-right" style={{ flexDirection: 'column', alignItems: 'flex-end', gap: 2 }}>
                                   <div style={{ display: 'flex', alignItems: 'center', gap: 4, cursor: 'pointer' }} onClick={() => setEditingFund(f)} title="点击修改持有金额">
@@ -1372,7 +1368,7 @@ export default function HomePage() {
                                 </div>
                               </>
                             ) : (
-                              // 卡片视图不变
+                              // 卡片视图 (Card View) 保持不变
                               <>
                               <div className="row" style={{ marginBottom: 10 }}>
                                 <div className="title">
@@ -1507,7 +1503,19 @@ export default function HomePage() {
         </p>
         <p>注：估算数据与真实结算数据会有1%左右误差</p>
         <div style={{ marginTop: 12, opacity: 0.8 }}>
-          
+          <p>
+            遇到任何问题或需求建议可
+            <button
+              className="link-button"
+              onClick={() => {
+                setFeedbackNonce((n) => n + 1);
+                setFeedbackOpen(true);
+              }}
+              style={{ background: 'none', border: 'none', color: 'var(--primary)', cursor: 'pointer', padding: '0 4px', textDecoration: 'underline', fontSize: 'inherit', fontWeight: 600 }}
+            >
+              点此提交反馈
+            </button>
+          </p>
         </div>
       </div>
 
