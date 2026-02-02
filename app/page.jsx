@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useForm, ValidationError } from '@formspree/react';
 import Announcement from "./components/Announcement";
 
-// --- 图标组件保持不变 ---
+// --- 图标组件 (保持不变) ---
 function PlusIcon(props) { return (<svg {...props} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /></svg>); }
 function TrashIcon(props) { return (<svg {...props} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"><path d="M3 6h18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /><path d="M8 6l1-2h6l1 2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /><path d="M6 6l1 13a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-13" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /><path d="M10 11v6M14 11v6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /></svg>); }
 function EditIcon(props) { return (<svg {...props} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>); }
@@ -19,7 +19,7 @@ function CloseIcon(props) { return (<svg {...props} xmlns="http://www.w3.org/200
 function ListIcon(props) { return (<svg {...props} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>); }
 function StarIcon({ filled, ...props }) { return (<svg {...props} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill={filled ? "var(--accent)" : "none"}><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>); }
 
-// --- 子组件保持不变 ---
+// --- 子组件 (保持不变) ---
 function Stat({ label, value, delta }) {
   const dir = delta > 0 ? 'up' : delta < 0 ? 'down' : '';
   return (
@@ -229,19 +229,13 @@ export default function HomePage() {
   const [addFailures, setAddFailures] = useState([]);
 
   // --- 强力去重工具 ---
-  // 用于在任何数据更新时，清除无效数据和重复代码
   const cleanAndDedupe = (list) => {
     if (!Array.isArray(list)) return [];
     const seen = new Set();
     const result = [];
     for (const item of list) {
-      // 必须有 code 且是有效对象
       if (!item || !item.code) continue;
-      if (seen.has(item.code)) {
-        // 如果已存在，用新数据覆盖旧数据（可选，这里选择保留第一个，或者可以在 reduce 中做合并）
-        // 为了简单，我们只保留第一个遇到的有效项
-        continue;
-      }
+      if (seen.has(item.code)) continue;
       seen.add(item.code);
       result.push(item);
     }
@@ -265,18 +259,12 @@ export default function HomePage() {
 
   // --- 初始化与同步 ---
   useEffect(() => {
-    // 初始化读取
     try {
       const saved = JSON.parse(localStorage.getItem('funds') || '[]');
-      // 立即去重
       const cleanFunds = cleanAndDedupe(saved);
-      // 如果去重后的数量和原始不同，说明有垃圾数据，立即回写
-      if (cleanFunds.length !== saved.length) {
-        localStorage.setItem('funds', JSON.stringify(cleanFunds));
-      }
+      if (cleanFunds.length !== saved.length) localStorage.setItem('funds', JSON.stringify(cleanFunds));
       setFunds(cleanFunds);
 
-      // 其他配置加载...
       const savedMs = parseInt(localStorage.getItem('refreshMs') || '30000', 10);
       if (Number.isFinite(savedMs) && savedMs >= 5000) {
         setRefreshMs(savedMs);
@@ -289,23 +277,21 @@ export default function HomePage() {
       const savedViewMode = localStorage.getItem('viewMode');
       if (savedViewMode) setViewMode(savedViewMode);
       
-      // 首次加载后，刷新一次数据
       const codes = cleanFunds.map(f => f.code);
       if (codes.length > 0) refreshAll(codes);
 
     } catch (e) {
       console.error('初始化数据失败', e);
-      setFunds([]); // 出错则置空，防止白屏
+      setFunds([]);
     }
   }, []);
 
-  // 监听多标签页同步
   useEffect(() => {
     const handleStorageChange = (e) => {
       if (e.key === 'funds') {
         try {
           const raw = e.newValue ? JSON.parse(e.newValue) : [];
-          setFunds(cleanAndDedupe(raw)); // 同步时也强制去重
+          setFunds(cleanAndDedupe(raw)); 
         } catch (err) { }
       }
       if (e.key === 'favorites') {
@@ -318,7 +304,6 @@ export default function HomePage() {
     return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
-  // 自动刷新定时器
   useEffect(() => {
     if (timerRef.current) clearInterval(timerRef.current);
     timerRef.current = setInterval(() => {
@@ -340,9 +325,7 @@ export default function HomePage() {
   };
 
   const fetchFundData = async (c) => {
-    // 增加超时控制，防止接口卡死导致数据丢失
     const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 5000));
-    
     const fetchPromise = new Promise(async (resolve, reject) => {
       const getTencentPrefix = (code) => {
         if (code.startsWith('6') || code.startsWith('9')) return 'sh';
@@ -386,7 +369,7 @@ export default function HomePage() {
             }
           }
           holdings = holdings.slice(0, 10);
-          resolve({ ...gzData, holdings }); // resolve without waiting for tencent quotes to be faster
+          resolve({ ...gzData, holdings });
         }).catch(() => resolve({ ...gzData, holdings: [] }));
       };
 
@@ -407,7 +390,6 @@ export default function HomePage() {
     try {
       const newFunds = [];
       const failures = [];
-      
       for (const c of codes) {
         const existing = funds.find(f => f.code === c);
         try {
@@ -416,23 +398,17 @@ export default function HomePage() {
           newFunds.push(data);
         } catch (e) {
           console.error(`Error adding ${c}`, e);
-          // 如果添加失败，但之前有这个基金，就保留旧的，别丢了
           if (existing) newFunds.push(existing);
           else failures.push({ code: c });
         }
       }
-      
-      // 合并逻辑：保留原列表中未涉及的 + 新增的/更新的
       const currentMap = new Map();
       funds.forEach(f => currentMap.set(f.code, f));
       newFunds.forEach(f => currentMap.set(f.code, f));
-      
       const merged = Array.from(currentMap.values());
       const deduped = cleanAndDedupe(merged);
-      
       setFunds(deduped);
       localStorage.setItem('funds', JSON.stringify(deduped));
-      
       if (failures.length > 0) {
         setAddFailures(failures);
         setAddResultOpen(true);
@@ -448,33 +424,23 @@ export default function HomePage() {
     if (refreshingRef.current) return;
     refreshingRef.current = true;
     setRefreshing(true);
-    
-    // 使用 Set 去重 codes，防止重复请求
     const uniqueCodes = Array.from(new Set(codes));
-    
-    // 准备一个 Map 存放最新的数据，先填入旧数据作为保底
     const resultMap = new Map();
     funds.forEach(f => resultMap.set(f.code, f));
 
     try {
-      // 并发请求，提高效率
       await Promise.allSettled(uniqueCodes.map(async (c) => {
         try {
           const data = await fetchFundData(c);
           const old = resultMap.get(c);
-          if (old?.amount) data.amount = old.amount; // 保留持仓
-          resultMap.set(c, data); // 只有成功才覆盖
-        } catch (e) {
-          // 失败了什么都不做，resultMap里还是旧数据，确保不丢失
-          console.warn(`Refresh failed for ${c}, keeping old data.`);
-        }
+          if (old?.amount) data.amount = old.amount;
+          resultMap.set(c, data);
+        } catch (e) { }
       }));
-
       const finalFunds = Array.from(resultMap.values());
       const deduped = cleanAndDedupe(finalFunds);
       setFunds(deduped);
       localStorage.setItem('funds', JSON.stringify(deduped));
-      
     } catch (e) {
       console.error('Refresh all error', e);
     } finally {
@@ -483,8 +449,7 @@ export default function HomePage() {
     }
   };
 
-  // --- 其他交互函数 ---
-  const performSearch = async (val) => { /* 保持不变 */ 
+  const performSearch = async (val) => { 
     if (!val.trim()) { setSearchResults([]); return; }
     setIsSearching(true);
     const callbackName = `SuggestData_${Date.now()}`;
@@ -532,7 +497,6 @@ export default function HomePage() {
   const removeFund = (removeCode) => {
     const next = funds.filter((f) => f.code !== removeCode);
     setFunds(next); localStorage.setItem('funds', JSON.stringify(next));
-    // 同步删除相关的状态
     if (expandedCodes.has(removeCode)) {
       const nextEx = new Set(expandedCodes); nextEx.delete(removeCode);
       setExpandedCodes(nextEx); localStorage.setItem('expandedCodes', JSON.stringify(Array.from(nextEx)));
@@ -563,7 +527,6 @@ export default function HomePage() {
     e?.preventDefault?.(); const ms = Math.max(5, Number(tempSeconds)) * 1000;
     setRefreshMs(ms); localStorage.setItem('refreshMs', String(ms)); setSettingsOpen(false);
   };
-  // 下拉框关闭逻辑
   useEffect(() => {
     const handleClickOutside = (event) => { if (dropdownRef.current && !dropdownRef.current.contains(event.target)) setShowDropdown(false); };
     document.addEventListener('mousedown', handleClickOutside); return () => document.removeEventListener('mousedown', handleClickOutside);
@@ -677,13 +640,13 @@ export default function HomePage() {
                         const amount = parseFloat(f.amount) || 0;
                         const rate = f.estPricedCoverage > 0.05 ? f.estGszzl : (Number(f.gszzl) || 0);
                         const profit = amount * rate / 100;
+                        // Name | Change | Value | Amount | Profit | Delete
                         const gridTemplate = 'minmax(220px, 1.5fr) 100px 100px 100px 100px 60px'; 
                         
                         return (
                           <motion.div
-                            key={f.code} // 确保 key 唯一
+                            key={f.code}
                             className={viewMode === 'card' ? 'col-6' : 'table-row-wrapper'}
-                            // 移除了 layout="position" 以防止移动端刷新时的布局塌陷
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             exit={{ opacity: 0 }}
@@ -700,11 +663,13 @@ export default function HomePage() {
                                     <span className="muted code-text" style={{ fontSize: '12px' }}>#{f.code}</span>
                                   </div>
                                 </div>
+                                {/* 涨跌幅列 (前置) */}
                                 <div className="table-cell text-right change-cell">
                                   <span className={f.estPricedCoverage > 0.05 ? (f.estGszzl > 0 ? 'up' : f.estGszzl < 0 ? 'down' : '') : (Number(f.gszzl) > 0 ? 'up' : Number(f.gszzl) < 0 ? 'down' : '')} style={{ fontWeight: 700 }}>
                                     {f.estPricedCoverage > 0.05 ? `${f.estGszzl > 0 ? '+' : ''}${f.estGszzl.toFixed(2)}%` : (typeof f.gszzl === 'number' ? `${f.gszzl > 0 ? '+' : ''}${f.gszzl.toFixed(2)}%` : f.gszzl ?? '—')}
                                   </span>
                                 </div>
+                                {/* 估值/净值列 (后置) */}
                                 <div className="table-cell text-right value-cell">
                                   <span style={{ fontWeight: 700 }}>{f.estPricedCoverage > 0.05 ? f.estGsz.toFixed(4) : (f.gsz ?? '—')}</span>
                                 </div>
@@ -723,7 +688,7 @@ export default function HomePage() {
                               </>
                             ) : (
                               <>
-                              {/* 卡片视图代码保持原样 */}
+                              {/* 卡片视图代码 */}
                               <div className="row" style={{ marginBottom: 10 }}>
                                 <div className="title">
                                   <button className={`icon-button fav-button ${favorites.has(f.code) ? 'active' : ''}`} onClick={(e) => { e.stopPropagation(); toggleFavorite(f.code); }}><StarIcon width="18" height="18" filled={favorites.has(f.code)} /></button>
@@ -732,8 +697,9 @@ export default function HomePage() {
                                 <div className="actions"><button className="icon-button danger" onClick={() => removeFund(f.code)}><TrashIcon width="18" height="18" /></button></div>
                               </div>
                               <div className="row" style={{ marginBottom: 12 }}>
-                                <Stat label="估值净值" value={f.estPricedCoverage > 0.05 ? f.estGsz.toFixed(4) : (f.gsz ?? '—')} />
+                                {/* 修复点：交换了Stat的顺序，将涨跌幅放在左边 */}
                                 <Stat label="涨跌幅" value={f.estPricedCoverage > 0.05 ? `${f.estGszzl > 0 ? '+' : ''}${f.estGszzl.toFixed(2)}%` : (typeof f.gszzl === 'number' ? `${f.gszzl > 0 ? '+' : ''}${f.gszzl.toFixed(2)}%` : f.gszzl ?? '—')} delta={f.estPricedCoverage > 0.05 ? f.estGszzl : (Number(f.gszzl) || 0)} />
+                                <Stat label="估值净值" value={f.estPricedCoverage > 0.05 ? f.estGsz.toFixed(4) : (f.gsz ?? '—')} />
                               </div>
                               <div className="row" style={{ marginBottom: 12, padding: '8px 12px', background: 'var(--bg)', borderRadius: '8px', border: '1px solid var(--border)' }}>
                                 <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 4 }}>
