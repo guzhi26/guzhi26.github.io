@@ -8,9 +8,8 @@ import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 import timezone from 'dayjs/plugin/timezone';
 import Announcement from "./components/Announcement";
-import { DatePicker, DonateTabs, NumericInput, Stat } from "./components/Common";
+import { DatePicker, NumericInput, Stat } from "./components/Common";
 import { ChevronIcon, CloseIcon, CloudIcon, DragIcon, ExitIcon, GridIcon, ListIcon, LoginIcon, LogoutIcon, MailIcon, PlusIcon, RefreshIcon, SettingsIcon, SortIcon, StarIcon, TrashIcon, UpdateIcon, UserIcon } from "./components/Icons";
-import githubImg from "./assets/github.svg";
 import { fetchFundData, fetchShanghaiIndexDate, fetchSmartFundNetValue, searchFunds, submitFeedback } from './api/fund';
 import packageJson from '../package.json';
 
@@ -170,6 +169,7 @@ function FeedbackModal({ onClose, user }) {
             </button>
 
             <div style={{ marginTop: 20, paddingTop: 16, borderTop: '1px solid var(--border)', textAlign: 'center' }}>
+
             </div>
           </form>
         )}
@@ -1348,6 +1348,7 @@ export default function HomePage() {
              {theme === 'light' ? <MoonIcon width="18" height="18" /> : <SunIcon width="18" height="18" />}
           </button>
 
+          
           <button className="icon-button" onClick={manualRefresh} disabled={refreshing || funds.length === 0} aria-busy={refreshing} title="立即刷新">
             <RefreshIcon className={refreshing ? 'spin' : ''} width="18" height="18" />
           </button>
@@ -1687,7 +1688,6 @@ export default function HomePage() {
         {donateOpen && (
           <div className="modal-overlay" onClick={() => setDonateOpen(false)}>
             <motion.div initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }} className="glass card modal" style={{ maxWidth: '360px' }} onClick={(e) => e.stopPropagation()}>
-              <div className="title" style={{ marginBottom: 20, justifyContent: 'space-between' }}><div style={{ display: 'flex', alignItems: 'center', gap: 10 }}><span>☕ 请作者喝杯咖啡</span></div><button className="icon-button" onClick={() => setDonateOpen(false)} style={{ border: 'none', background: 'transparent' }}><CloseIcon width="20" height="20" /></button></div>
               <div style={{ marginBottom: 20 }}><DonateTabs /></div>
               <div className="muted" style={{ fontSize: '12px', textAlign: 'center', lineHeight: 1.5 }}>感谢您的支持！您的鼓励是我持续维护和更新的动力。</div>
             </motion.div>
