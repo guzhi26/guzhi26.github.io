@@ -170,19 +170,6 @@ function FeedbackModal({ onClose, user }) {
             </button>
 
             <div style={{ marginTop: 20, paddingTop: 16, borderTop: '1px solid var(--border)', textAlign: 'center' }}>
-              <p className="muted" style={{ fontSize: '12px', lineHeight: '1.6' }}>
-                如果您有 Github 账号，也可以在本项目
-                <a
-                  href="https://github.com/hzm0321/real-time-fund/issues"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="link-button"
-                  style={{ color: 'var(--primary)', textDecoration: 'underline', padding: '0 4px', fontWeight: 600 }}
-                >
-                  Issues
-                </a>
-                区留言互动
-              </p>
             </div>
           </form>
         )}
@@ -1361,8 +1348,6 @@ export default function HomePage() {
              {theme === 'light' ? <MoonIcon width="18" height="18" /> : <SunIcon width="18" height="18" />}
           </button>
 
-          <img alt="Github" src={githubImg.src} style={{ width: '30px', height: '30px', cursor: 'pointer' }} onClick={() => window.open("https://github.com/hzm0321/real-time-fund")} />
-          
           <button className="icon-button" onClick={manualRefresh} disabled={refreshing || funds.length === 0} aria-busy={refreshing} title="立即刷新">
             <RefreshIcon className={refreshing ? 'spin' : ''} width="18" height="18" />
           </button>
@@ -1688,8 +1673,7 @@ export default function HomePage() {
             遇到任何问题或需求建议可
             <button className="link-button" onClick={() => { setFeedbackNonce((n) => n + 1); setFeedbackOpen(true); }} style={{ background: 'none', border: 'none', color: 'var(--primary)', cursor: 'pointer', padding: '0 4px', textDecoration: 'underline', fontSize: 'inherit', fontWeight: 600 }}>点此提交反馈</button>
           </p>
-          <button onClick={() => setDonateOpen(true)} style={{ background: 'transparent', border: 'none', color: 'var(--muted)', fontSize: '12px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4, padding: '4px 8px', borderRadius: '6px', transition: 'all 0.2s ease' }} onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--primary)'; e.currentTarget.style.background = 'rgba(127,127,127,0.05)'; }} onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--muted)'; e.currentTarget.style.background = 'transparent'; }}><span>☕</span><span>点此请作者喝杯咖啡</span></button>
-        </div>
+          </div>
       </div>
 
       <AnimatePresence>{feedbackOpen && <FeedbackModal key={feedbackNonce} onClose={() => setFeedbackOpen(false)} user={user} />}</AnimatePresence>
