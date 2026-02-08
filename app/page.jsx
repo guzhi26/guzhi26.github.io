@@ -1411,7 +1411,7 @@ export default function HomePage() {
               <div className="sort-items" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <span className="muted" style={{ fontSize: '12px', display: 'flex', alignItems: 'center', gap: 4 }}><SortIcon width="14" height="14" />排序</span>
                 <div className="chips">
-                  {[{ id: 'default', label: '默认' }, { id: 'yield', label: '涨跌幅' }, { id: 'holding', label: '持有收益' }, { id: 'name', label: '名称' }].map((s) => (
+                  {[{ id: 'yield', label: '涨跌幅' }, { id: 'holding', label: '持有收益' }, { id: 'name', label: '名称' }].map((s) => (
                     <button key={s.id} className={`chip ${sortBy === s.id ? 'active' : ''}`} onClick={() => { if (sortBy === s.id) { setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc')); } else { setSortBy(s.id); setSortOrder('desc'); } }} style={{ height: '28px', fontSize: '12px', padding: '0 10px', display: 'flex', alignItems: 'center', gap: 4 }}><span>{s.label}</span>{s.id !== 'default' && sortBy === s.id && (<span style={{ display: 'inline-flex', flexDirection: 'column', lineHeight: 1, fontSize: '8px' }}><span style={{ opacity: sortOrder === 'asc' ? 1 : 0.3 }}>▲</span><span style={{ opacity: sortOrder === 'desc' ? 1 : 0.3 }}>▼</span></span>)}</button>
                   ))}
                 </div>
@@ -1591,15 +1591,15 @@ export default function HomePage() {
                                      </div>
                                   </div>
                                   <div className="row" style={{ marginBottom: 12 }}>
-                                      <Stat label="单位净值" value={f.dwjz ?? '—'} />
+                                      <Stat label={`净值${f.jzrq ? `(${f.jzrq.slice(5)})` : ''}`} value={f.dwjz ?? '—'} />
                                       {(() => {
                                           const changeRate = !shouldHideChange ? (f.zzl !== undefined ? Number(f.zzl) : (Number(f.gszzl) || 0)) : (f.estPricedCoverage > 0.05 ? f.estGszzl : (Number(f.gszzl) || 0));
                                           if (f.noValuation) return <Stat label="涨跌幅" value={f.zzl !== undefined && f.zzl !== null ? `${f.zzl > 0 ? '+' : ''}${Number(f.zzl).toFixed(2)}%` : '—'} delta={f.zzl} />;
                                           return (
                                             <>
                                               {!shouldHideChange && <Stat label="涨跌幅" value={f.zzl !== undefined ? `${f.zzl > 0 ? '+' : ''}${Number(f.zzl).toFixed(2)}%` : ''} delta={f.zzl} />}
-                                              <Stat label="估值净值" value={f.estPricedCoverage > 0.05 ? f.estGsz.toFixed(4) : (f.gsz ?? '—')} />
-                                              <Stat label="估值涨跌幅" value={f.estPricedCoverage > 0.05 ? `${f.estGszzl > 0 ? '+' : ''}${f.estGszzl.toFixed(2)}%` : (typeof f.gszzl === 'number' ? `${f.gszzl > 0 ? '+' : ''}${f.gszzl.toFixed(2)}%` : f.gszzl ?? '—')} delta={f.estPricedCoverage > 0.05 ? f.estGszzl : (Number(f.gszzl) || 0)} />
+                                              <Stat label="实时估值" value={f.estPricedCoverage > 0.05 ? f.estGsz.toFixed(4) : (f.gsz ?? '—')} />
+                                              <Stat label="估值涨跌" value={f.estPricedCoverage > 0.05 ? `${f.estGszzl > 0 ? '+' : ''}${f.estGszzl.toFixed(2)}%` : (typeof f.gszzl === 'number' ? `${f.gszzl > 0 ? '+' : ''}${f.gszzl.toFixed(2)}%` : f.gszzl ?? '—')} delta={f.estPricedCoverage > 0.05 ? f.estGszzl : (Number(f.gszzl) || 0)} />
                                             </>
                                           );
                                       })()}
@@ -1632,7 +1632,23 @@ export default function HomePage() {
                                   <AnimatePresence>
                                     {!collapsedCodes.has(f.code) && (
                                       <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.3, ease: 'easeInOut' }} style={{ overflow: 'hidden' }}>
-                                        {Array.isArray(f.holdings) && f.holdings.length ? (<div className="list">{f.holdings.map((h, idx) => (<div className="item" key={idx}><span className="name">{h.name}</span><div className="values">{typeof h.change === 'number' && (<span className={`badge ${h.change > 0 ? 'up' : h.change < 0 ? 'down' : ''}`} style={{ marginRight: 8 }}>{h.change > 0 ? '+' : ''}{h.change.toFixed(2)}%</span>)}<span className="weight">{h.weight}</span></div></div>))}</div>) : (<div className="muted" style={{ padding: '8px 0' }}>暂无重仓数据</div>)}
+                                        {Array.isArray(f.holdings) && f.holdings.length ? (
+                                            <div className="list">
+                                            {f.holdings.map((h, idx) => (
+                                                <div className="item" key={idx} style={{ gap: 8 }}>
+                                                <span className="name" style={{ fontSize: `${getAutoFontSize(h.name, 14, 12)}px`, flex: 1, minWidth: 0 }}>{h.name}</span>
+                                                <div className="values" style={{ display: 'flex', alignItems: 'center', flexShrink: 0, gap: '6px' }}>
+                                                    {typeof h.change === 'number' && (
+                                                    <span className={`badge ${h.change > 0 ? 'up' : h.change < 0 ? 'down' : ''}`} style={{ fontSize: '12px', padding: '2px 6px', height: '20px', lineHeight: '18px' }}>
+                                                        {h.change > 0 ? '+' : ''}{h.change.toFixed(2)}%
+                                                    </span>
+                                                    )}
+                                                    <span className="weight" style={{ fontSize: '13px', fontFamily: 'var(--font-mono)' }}>{h.weight}</span>
+                                                </div>
+                                                </div>
+                                            ))}
+                                            </div>
+                                        ) : (<div className="muted" style={{ padding: '8px 0' }}>暂无重仓数据</div>)}
                                       </motion.div>
                                     )}
                                   </AnimatePresence>
