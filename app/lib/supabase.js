@@ -1,11 +1,48 @@
 import { createClient } from '@supabase/supabase-js';
 
-// Supabase 配置
-// 注意：此处使用 publishable key，可安全在客户端使用
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+export const isSupabaseConfigured = Boolean(supabaseUrl && supabaseAnonKey);
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+const createNoopChannel = () => {
+    const channel = {
+        on: () => channel,
+        subscribe: () => channel
+    };
+    return channel;
+};
+
+const createNoopTable = () => {
+    return {
+        select: () => ({
+            eq: () => ({
+                maybeSingle: async () => ({ data: null, error: { message: 'Supabase not configured' } })
+            })
+        }),
+        insert: async () => ({ data: null, error: { message: 'Supabase not configured' } }),
+        upsert: () => ({
+            select: async () => ({ data: null, error: { message: 'Supabase not configured' } })
+        })
+    };
+};
+
+const createNoopSupabase = () => ({
+    auth: {
+        getSession: async () => ({ data: { session: null }, error: null }),
+        onAuthStateChange: () => ({
+            data: { subscription: { unsubscribe: () => { } } }
+        }),
+        signInWithOtp: async () => ({ data: null, error: { message: 'Supabase not configured' } }),
+        verifyOtp: async () => ({ data: null, error: { message: 'Supabase not configured' } }),
+        signOut: async () => ({ error: null })
+    },
+    from: () => createNoopTable(),
+    channel: () => createNoopChannel(),
+    removeChannel: () => { },
+    rpc: async () => ({ data: null, error: { message: 'Supabase not configured' } })
+});
+
+export const supabase = isSupabaseConfigured ? createClient(supabaseUrl, supabaseAnonKey, {
     auth: {
         // 启用自动刷新 token
         autoRefreshToken: true,
@@ -14,4 +51,4 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
         // 检测 URL 中的 session（用于邮箱验证回调）
         detectSessionInUrl: true
     }
-});
+}) : createNoopSupabase();
