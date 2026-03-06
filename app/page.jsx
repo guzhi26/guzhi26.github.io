@@ -373,7 +373,7 @@ export default function HomePage() {
   }, [sortBy, sortOrder, isSortLoaded]);
 
   // 视图模式
-  const [viewMode, setViewMode] = useState('list'); // card, list
+  const [viewMode, setViewMode] = useState('card'); // card, list
 
   // 用户认证状态
   const [user, setUser] = useState(null);
