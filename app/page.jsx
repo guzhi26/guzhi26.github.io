@@ -396,7 +396,7 @@ export default function HomePage() {
   const [loginLoading, setLoginLoading] = useState(false);
   const [loginError, setLoginError] = useState('');
   const [loginSuccess, setLoginSuccess] = useState('');
-  const [loginOtp, setLoginOtp] = useState('');
+  const [loginPassword, setLoginPassword] = useState(''); // 将 Otp 改为 Password
 
   const userAvatar = useMemo(() => {
     if (!user?.id) return '';
@@ -2286,80 +2286,83 @@ export default function HomePage() {
     };
   }, [user?.id]);
 
-  const handleSendOtp = async (e) => {
-    e.preventDefault();
-    setLoginError('');
-    setLoginSuccess('');
-    if (!isSupabaseConfigured) {
-      showToast('未配置 Supabase，无法登录', 'error');
-      return;
-    }
+// 邮箱 + 密码登录
+const handleSignInWithPassword = async (e) => {
+  e?.preventDefault();
+  setLoginError('');
+  setLoginSuccess('');
+  if (!isSupabaseConfigured) {
+    showToast('未配置 Supabase，无法登录', 'error');
+    return;
+  }
+  if (!loginEmail.trim() || !loginPassword) {
+    setLoginError('请输入邮箱和密码');
+    return;
+  }
 
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!loginEmail.trim()) {
-      setLoginError('请输入邮箱地址');
-      return;
+  setLoginLoading(true);
+  try {
+    isExplicitLoginRef.current = true;
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: loginEmail.trim(),
+      password: loginPassword,
+    });
+    if (error) throw error;
+    if (data?.user) {
+      setLoginModalOpen(false);
+      setLoginEmail('');
+      setLoginPassword('');
+      setLoginError('');
     }
-    if (!emailRegex.test(loginEmail.trim())) {
-      setLoginError('请输入有效的邮箱地址');
-      return;
-    }
-
-    setLoginLoading(true);
-    try {
-      const { error } = await supabase.auth.signInWithOtp({
-        email: loginEmail.trim(),
-        options: {
-          shouldCreateUser: true
-        }
-      });
-      if (error) throw error;
-      setLoginSuccess('验证码已发送，请查收邮箱输入验证码完成注册/登录');
-    } catch (err) {
-      if (err.message?.includes('rate limit')) {
-        setLoginError('请求过于频繁，请稍后再试');
-      } else if (err.message?.includes('network')) {
-        setLoginError('网络错误，请检查网络连接');
-      } else {
-        setLoginError(err.message || '发送验证码失败，请稍后再试');
-      }
-    } finally {
-      setLoginLoading(false);
-    }
-  };
-
-  const handleVerifyEmailOtp = async () => {
-    setLoginError('');
-    if (!loginOtp || loginOtp.length < 4) {
-      setLoginError('请输入邮箱中的验证码');
-      return;
-    }
-    if (!isSupabaseConfigured) {
-      showToast('未配置 Supabase，无法登录', 'error');
-      return;
-    }
-    try {
-      isExplicitLoginRef.current = true;
-      setLoginLoading(true);
-      const { data, error } = await supabase.auth.verifyOtp({
-        email: loginEmail.trim(),
-        token: loginOtp.trim(),
-        type: 'email'
-      });
-      if (error) throw error;
-      if (data?.user) {
-        setLoginModalOpen(false);
-        setLoginEmail('');
-        setLoginOtp('');
-        setLoginSuccess('');
-        setLoginError('');
-      }
-    } catch (err) {
-      setLoginError(err.message || '验证失败，请检查验证码或稍后再试');
-      isExplicitLoginRef.current = false;
-    }
+  } catch (err) {
+    setLoginError(err.message || '登录失败，请检查邮箱或密码');
+    isExplicitLoginRef.current = false;
+  } finally {
     setLoginLoading(false);
-  };
+  }
+};
+
+// 邮箱 + 密码注册
+const handleSignUpWithPassword = async (e) => {
+  e?.preventDefault();
+  setLoginError('');
+  setLoginSuccess('');
+  if (!isSupabaseConfigured) {
+    showToast('未配置 Supabase，无法登录', 'error');
+    return;
+  }
+  if (!loginEmail.trim() || !loginPassword) {
+    setLoginError('请输入邮箱和密码');
+    return;
+  }
+  if (loginPassword.length < 6) {
+    setLoginError('密码长度不能少于6位');
+    return;
+  }
+
+  setLoginLoading(true);
+  try {
+    const { data, error } = await supabase.auth.signUp({
+      email: loginEmail.trim(),
+      password: loginPassword,
+    });
+    if (error) throw error;
+    
+    // 如果 Supabase 设置中开启了“Confirm Email”，注册后没有 session
+    if (data?.user && !data?.session) {
+      setLoginSuccess('注册成功！请前往您的邮箱点击验证链接以激活账号。');
+    } else {
+      // 如果没开启邮箱验证，直接登录成功并关闭弹窗
+      setLoginModalOpen(false);
+      setLoginEmail('');
+      setLoginPassword('');
+    }
+  } catch (err) {
+    setLoginError(err.message || '注册失败，请稍后再试');
+  } finally {
+    setLoginLoading(false);
+  }
+};
 
   // 登出
   const handleLogout = async () => {
@@ -2369,7 +2372,7 @@ export default function HomePage() {
       setLoginError('');
       setLoginSuccess('');
       setLoginEmail('');
-      setLoginOtp('');
+      setLoginPassword('');
       setUserMenuOpen(false);
       setUser(null);
       return;
@@ -2409,7 +2412,7 @@ export default function HomePage() {
       setLoginError('');
       setLoginSuccess('');
       setLoginEmail('');
-      setLoginOtp('');
+      setLoginPassword('');
       setUserMenuOpen(false);
       setUser(null);
     }
@@ -4855,22 +4858,22 @@ export default function HomePage() {
       {/* 登录模态框 */}
       {loginModalOpen && (
         <LoginModal
+          loginEmail={loginEmail}
+          setLoginEmail={setLoginEmail}
+          loginPassword={loginPassword}
+          setLoginPassword={setLoginPassword}
+          loginLoading={loginLoading}
+          loginError={loginError}
+          loginSuccess={loginSuccess} // 用于显示注册后的“去邮箱激活”提示
+          handleLogin={handleSignInWithPassword}
+          handleSignUp={handleSignUpWithPassword}
           onClose={() => {
             setLoginModalOpen(false);
             setLoginError('');
             setLoginSuccess('');
             setLoginEmail('');
-            setLoginOtp('');
+            setLoginPassword('');
           }}
-          loginEmail={loginEmail}
-          setLoginEmail={setLoginEmail}
-          loginOtp={loginOtp}
-          setLoginOtp={setLoginOtp}
-          loginLoading={loginLoading}
-          loginError={loginError}
-          loginSuccess={loginSuccess}
-          handleSendOtp={handleSendOtp}
-          handleVerifyEmailOtp={handleVerifyEmailOtp}
         />
       )}
 
